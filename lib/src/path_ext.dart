@@ -224,7 +224,7 @@ extension PathExt on p.Context {
 
     subPattern = patternEx.substring(lastSepPos + 1);
 
-    if ((lastSepPos == 0) || (patternEx[lastSepPos - 1] == driveSeparator)) {
+    if ((lastSepPos == 0) || (!isPosix && (patternEx[lastSepPos - 1] == driveSeparator))) {
       ++lastSepPos;
     }
 

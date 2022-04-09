@@ -82,6 +82,7 @@ class FileFilter {
         context: context,
         recursive: PathExt.isRecursiveGlobPattern(parts[1]),
         caseSensitive: caseSensitive);
+    regexp = null;
   }
 
   /// Get the actual regexp object for the filesystem entities filtering
@@ -91,6 +92,7 @@ class FileFilter {
     pattern = context.adjustEscaped(pattern);
     matchPath = pattern.contains(context.separatorEscaped);
     regexp = RegExp(pattern, caseSensitive: caseSensitive ?? false);
+    glob = null;
   }
 
   /// Remove all leading negation chars from [pattern] and set [negative] flag
@@ -107,7 +109,7 @@ class FileFilter {
 
           if (length > 0) {
             this.negative = ((length % 2) == 1);
-            return negationPrefix.substring(0, (length ~/ 2));
+            return negationPrefix.substring(0, (length ~/ 2)) + pattern.substring(match.end);
           }
         }
       }

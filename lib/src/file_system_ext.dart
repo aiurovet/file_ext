@@ -109,6 +109,7 @@ extension FileSystemExt on FileSystem {
       {bool followLinks = true}) async {
     // Retrieve all entites in this directory and don't catch any exception here
     //
+
     final entities = await directory(root)
         .list(recursive: false, followLinks: followLinks)
         .toList()
@@ -150,8 +151,8 @@ extension FileSystemExt on FileSystem {
     // sub-directory
     //
     if (options.recursive) {
-      for (var i = 0, n = result.length; i < n; i++) {
-        final path = result[i];
+      for (var i = 0, n = paths.length; i < n; i++) {
+        final path = paths[i];
 
         if (path.endsWith(sep)) {
           await _list(result, path, options, followLinks: followLinks);
