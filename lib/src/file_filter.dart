@@ -8,9 +8,9 @@ import 'package:path/path.dart' as p;
 /// A supplementary class for `list(...)` and `listSync(...)` of `FileSystemExt`
 ///
 class FileFilter {
-  /// A constant character indicating the pattern is negative (escaped by doubling: !!)
+  /// A regexp to discover negation
   ///
-  static const String negationChar = '!';
+  static final RegExp negationRE = RegExp(r'^[\s]*([!]+)[\s]*');
 
   /// The context object
   ///
@@ -32,7 +32,7 @@ class FileFilter {
 
   /// The original pattern
   ///
-  final String pattern;
+  String pattern = '';
 
   /// The regular expression object
   ///
@@ -40,7 +40,7 @@ class FileFilter {
 
   /// The top directory to start from (for glob patterns only)
   ///
-  late final String root;
+  String root = '';
 
   /// The constructor
   ///
@@ -75,7 +75,7 @@ class FileFilter {
       String straightPattern, bool? caseSensitive, bool? negative) {
     var parts = context.splitPattern(straightPattern);
     var root = parts[0];
-    straightPattern = parts[1];
+    pattern = parts[1];
     matchPath = root.isNotEmpty || straightPattern.contains(context.separator);
     this.root = root.isEmpty ? context.current : root;
     glob = Glob(straightPattern,
@@ -96,24 +96,24 @@ class FileFilter {
   /// Remove all leading negation chars from [pattern] and set [negative] flag
   ///
   String _getStraightPattern(String pattern, bool? negative) {
-    var result = '';
-
     if (negative == null) {
-      for (var i = 0, n = pattern.length; i < n; i++) {
-        if (pattern[i] == negationChar) {
-          if ((i > 0) && ((i % 2) == 0)) {
-            result += negationChar;
+      var match = negationRE.firstMatch(pattern);
+
+      if ((match != null) && (match.start == 0)) {
+        var negationPrefix = match.group(1);
+
+        if (negationPrefix != null) {
+          var length = negationPrefix.length;
+
+          if (length > 0) {
+            this.negative = ((length % 2) == 1);
+            return negationPrefix.substring(0, (length ~/ 2));
           }
-        } else {
-          negative = ((i % 2) == 1);
-          result += pattern.substring(i);
-          break;
         }
       }
     }
 
-    this.negative = negative ?? false;
-
-    return result;
+    this.negative = false;
+    return pattern;
   }
 }

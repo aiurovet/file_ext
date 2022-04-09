@@ -69,7 +69,7 @@ void main(List<String> args) async {
 /// A primitive command-line arguments parser (any other may be used instead)
 ///
 void parseArgs(List<String> args, ParseArgsProc onOpt, ParseArgsProc onArg) {
-  for (var arg in args) {
+  for (final arg in args) {
     if (arg.startsWith('-')) {
       onOpt(arg);
     } else {

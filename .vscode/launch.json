@@ -5,12 +5,16 @@
   "version": "0.2.0",
   "configurations": [
     { "name": "All", "request": "launch", "type": "dart", "program": "example/file_ext_example.dart",
+      "args": [ ]},
+    { "name": "All + hidden", "request": "launch", "type": "dart", "program": "example/file_ext_example.dart",
       "args": [ "-a" ]},
-    { "name": "All except docos", "request": "launch", "type": "dart", "program": "example/file_ext_example.dart",
-      "args": [ "", "**", "!*.{md,yml,yaml}" ]},
+    { "name": "All dirs & sub-dirs of parent", "request": "launch", "type": "dart", "program": "example/file_ext_example.dart",
+      "args": [ "-a", "-d", "../**" ]},
+    { "name": "All files except docos", "request": "launch", "type": "dart", "program": "example/file_ext_example.dart",
+      "args": [ "-f", "!*.{md,yml,yaml}" ]},
     { "name": "Dart", "request": "launch", "type": "dart", "program": "example/file_ext_example.dart",
-      "args": [ "", "**.dart" ]},
+      "args": [ "-f", "**.dart" ]},
     { "name": "Not Dart/Yaml", "request": "launch", "type": "dart", "program": "example/file_ext_example.dart",
-      "args": [ "", "!**.{dart,yaml}" ]}
+      "args": [ "-f", "** > !*.{dart,yaml}" ]}
   ]
 }
