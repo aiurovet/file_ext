@@ -5,7 +5,7 @@ import 'package:file/file.dart';
 import 'package:file/local.dart';
 import 'package:file_ext/file_ext.dart';
 
-import 'print_error_io.dart'
+import 'print_err_io.dart'
     if (dart.library.html) 'print_error_html.dart';
 
 /// A type for the argument parsing callback functions
@@ -28,7 +28,8 @@ Future printFileList(FileSystem fs, bool allowHidden, String? root,
           return true;
         },
         errorProc: (e, stackTrace) {
-          printError(e.toString());
+          printErr(e.toString());
+          return true;
         });
 
 /// Entry point

@@ -5,6 +5,6 @@ import 'dart:html';
 
 /// Portable error printer
 ///
-void printError(Object o) {
+void printErr(Object o) {
   window.console.error(o.toString());
 }

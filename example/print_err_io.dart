@@ -5,6 +5,6 @@ import 'dart:io';
 
 /// Portable error printer
 ///
-void printError(Object o) {
+void printErr(Object o) {
   stderr.writeln(o.toString());
 }

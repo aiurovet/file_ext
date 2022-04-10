@@ -7,14 +7,14 @@ import 'package:path/path.dart' as p;
 
 /// A local class to gather all necessary info for list() and listSync()
 ///
-class FileListOptions {
+class FileList {
   /// A regexp to split the input pattern into a list of and-patterns
   ///
-  final RegExp andSeparatorRE = RegExp(r'[\s]+[\>]+[\s]*');
+  final RegExp andSeparatorRE = RegExp(r'\s+>+\s*');
 
   /// A regexp to split the root into a list of top directories
   ///
-  final RegExp rootSeparatorRE = RegExp(r'[\s]*[,][\s]*');
+  final RegExp rootSeparatorRE = RegExp(r'\s*,\s*');
 
   /// A flag indicating whether the file list needs to be accumulated
   ///
@@ -28,7 +28,7 @@ class FileListOptions {
 
   /// An error handler
   ///
-  final FileListErrorProc? errorProc;
+  final FileFilterErrorProc? errorProc;
 
   /// The filesystem object
   ///
@@ -41,12 +41,17 @@ class FileListOptions {
   /// Asynchronous (non-blocking) FileList handler
   /// good for I/O manipulations
   ///
-  final FileListProc? filterProc;
+  final FileFilterProc? filterProc;
 
   /// Synchronous (blocking) FileList handler
   /// good for path/basename (string) manipulations
   ///
-  final FileListProcSync? filterProcSync;
+  final FileFilterProcSync? filterProcSync;
+
+  /// A flag indicating what to do when an entity of the type [Link]
+  /// encountered: if true, then replace with the entity it points to
+  ///
+  final bool followLinks;
 
   /// The path object
   ///
@@ -70,7 +75,7 @@ class FileListOptions {
 
   /// The constructor
   ///
-  FileListOptions(this.fs,
+  FileList(this.fs,
       {String? root,
       List<String>? roots,
       String? pattern,
@@ -81,7 +86,8 @@ class FileListOptions {
       this.allowHidden = false,
       this.filterProc,
       this.filterProcSync,
-      this.errorProc}) {
+      this.errorProc,
+      this.followLinks = true}) {
     context = fs.path;
     var recursive = false;
 
@@ -138,17 +144,169 @@ class FileListOptions {
     var filter = (filters.isEmpty ? null : filters[0]);
 
     if (this.roots.isEmpty) {
-      if ((filter == null) || filter.root.isEmpty) {
-        this.roots.add(context.current);
-      } else {
-        this.roots.add(filter.root);
-        filter.root = '';
-      }
+      this.roots.add(filter?.root ?? '');
+      filter?.root = '';
     } else if ((filter != null) && filter.root.isNotEmpty) {
       for (var i = 0, n = this.roots.length; i < n; i++) {
         this.roots[i] = fs.path.join(this.roots[i], filter.root);
       }
     }
+  }
+
+  /// The engine, asynchronous (non-blocking))
+  ///
+  bool callErrorProc(Object e, StackTrace stackTrace) =>
+    (errorProc == null ? true : errorProc!(e, stackTrace));
+
+  /// The engine, asynchronous (non-blocking))
+  ///
+  Future<List<String>> exec() async {
+    var result = <String>[];
+
+    // Accumulate filtered entities
+    //
+    for (final root in roots) {
+      await _exec(result, root);
+    }
+
+    return result;
+  }
+
+  /// The essential part of `exec(...)`: does everything after the [options]
+  /// object created and the next root taken
+  ///
+  Future<List<String>> _exec(
+      List<String> result, String root) async {
+    // Retrieve all entites in this directory and don't catch any exception here
+    //
+
+    final entities = await fs.directory(root)
+        .list(recursive: false, followLinks: followLinks)
+        .toList()
+      ..sort((a, b) => a.path.compareTo(b.path));
+
+    final paths = <String>[];
+
+    for (final entity in entities) {
+      try {
+        final matchedPath = await getMatchedPath(entity);
+
+        if (matchedPath.isNotEmpty) {
+          paths.add(matchedPath);
+        }
+      } on Error catch (e, stackTrace) {
+        if (!callErrorProc(e, stackTrace)) {
+          rethrow;
+        }
+      } on Exception catch (e, stackTrace) {
+        if (!callErrorProc(e, stackTrace)) {
+          rethrow;
+        }
+      }
+    }
+
+    // Make the access faster
+    //
+    final sep = fs.path.separator;
+
+    // Add the list of paths under the current root to the result
+    // (no sub-directories yet)
+    //
+    if (accumulate) {
+      result.addAll(paths);
+    }
+
+    // In case of recursion, call this method again in the loop for each
+    // sub-directory
+    //
+    if (recursive) {
+      for (var i = 0, n = paths.length; i < n; i++) {
+        final path = paths[i];
+
+        if (path.endsWith(sep)) {
+          await _exec(result, path);
+        }
+      }
+    }
+
+    // Return result
+    //
+    return result;
+  }
+
+  /// The engine, synchronous (blocking))
+  ///
+  List<String> execSync() {
+    var result = <String>[];
+
+    // Accumulate filtered entities
+    //
+    for (final root in roots) {
+      _execSync(result, root);
+    }
+
+    return result;
+  }
+
+  /// The essential part of `execSync(...)`: does everything after the
+  /// [options] object created. This separation is needed for recursion
+  /// which does require the [options] re-creation
+  ///
+  List<String> _execSync(
+      List<String> result, String root) {
+    // Retrieve all entites in this directory and don't catch any exception here
+    //
+    final entities = fs.directory(root)
+        .listSync(recursive: false, followLinks: followLinks)
+      ..sort((a, b) => a.path.compareTo(b.path));
+
+    final paths = <String>[];
+
+    for (final entity in entities) {
+      try {
+        final matchedPath = getMatchedPathSync(entity);
+
+        if (matchedPath.isNotEmpty) {
+          paths.add(matchedPath);
+        }
+      } on Error catch (e, stackTrace) {
+        if (!callErrorProc(e, stackTrace)) {
+          rethrow;
+        }
+      } on Exception catch (e, stackTrace) {
+        if (!callErrorProc(e, stackTrace)) {
+          rethrow;
+        }
+      }
+    }
+
+    // Make the access faster
+    //
+    final sep = fs.path.separator;
+
+    // Add the list of paths under the current root to the result
+    // (no sub-directories yet)
+    //
+    if (accumulate) {
+      result.addAll(paths);
+    }
+
+    // In case of recursion, call this method again in the loop for each
+    // sub-directory
+    //
+    if (recursive) {
+      for (var i = 0, n = result.length; i < n; i++) {
+        final path = result[i];
+
+        if (path.endsWith(sep)) {
+          _execSync(result, path);
+        }
+      }
+    }
+
+    // Return result
+    //
+    return result;
   }
 
   /// Returns path or empty string depending on whether the

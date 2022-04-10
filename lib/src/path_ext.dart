@@ -7,6 +7,14 @@ import 'package:path/path.dart' as p;
 /// A helper extension for the Path API
 ///
 extension PathExt on p.Context {
+  /// Alt directory separator (differs from separator for Windows-style FS only)
+  ///
+  static const altSeparator = r'/';
+
+  /// A variant of [altSeparator] for regexp patterns
+  ///
+  static const altSeparatorEscaped = r'\\';
+
   /// A pattern to list any file system element
   ///
   static final anyPattern = r'*';
@@ -46,14 +54,6 @@ extension PathExt on p.Context {
   static final isRegExpPatternRE =
       RegExp(r'^\^|\$$|[\|\(]', caseSensitive: false);
 
-  /// Alt directory separator (differs from separator for Windows-style FS only)
-  ///
-  static const altSeparator = r'/';
-
-  /// A variant of [altSeparator] for regexp patterns
-  ///
-  static const altSeparatorEscaped = r'\\';
-
   /// Check whether the file system is POSIX-compliant
   ///
   bool get isPosix => (separator == altSeparator);
@@ -61,6 +61,14 @@ extension PathExt on p.Context {
   /// A variant of [separator] for regexp patterns
   ///
   String get separatorEscaped => r'\' + separator;
+
+  /// A short name of the current directory
+  ///
+  static const String shortCurDirName = '.';
+
+  /// A short name of the parent directory
+  ///
+  static const String shortParentDirName = '..';
 
   /// Adjust [aPath] by replacing every alt separator with the core one
   /// (the opposite to `toPosix(...)`)

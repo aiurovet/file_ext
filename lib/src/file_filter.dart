@@ -10,7 +10,7 @@ import 'package:path/path.dart' as p;
 class FileFilter {
   /// A regexp to discover negation
   ///
-  static final RegExp negationRE = RegExp(r'^[\s]*([!]+)[\s]*');
+  static final RegExp negationRE = RegExp(r'^\s*~\s+');
 
   /// The context object
   ///
@@ -77,7 +77,7 @@ class FileFilter {
     var root = parts[0];
     pattern = parts[1];
     matchPath = root.isNotEmpty || straightPattern.contains(context.separator);
-    this.root = root.isEmpty ? context.current : root;
+    this.root = root.isEmpty ? '.' : root;
     glob = Glob(straightPattern,
         context: context,
         recursive: PathExt.isRecursiveGlobPattern(parts[1]),
@@ -102,16 +102,8 @@ class FileFilter {
       var match = negationRE.firstMatch(pattern);
 
       if ((match != null) && (match.start == 0)) {
-        var negationPrefix = match.group(1);
-
-        if (negationPrefix != null) {
-          var length = negationPrefix.length;
-
-          if (length > 0) {
-            this.negative = ((length % 2) == 1);
-            return negationPrefix.substring(0, (length ~/ 2)) + pattern.substring(match.end);
-          }
-        }
+        this.negative = true;
+        return pattern.substring(match.end);
       }
     }
 
