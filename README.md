@@ -36,7 +36,7 @@ Future printFileList(FileSystem fs,
         allowHidden: allowHidden,
         followLinks: followLinks,
         type: type,
-        filterProcSync: (fileList, entityPath, entityName, stat) {
+        listProcSync: (fileList, entityPath, entityName, stat) {
           print(entityPath);
           return true;
         },

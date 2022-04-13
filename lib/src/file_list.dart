@@ -36,7 +36,7 @@ class FileList {
 
   /// An error handler
   ///
-  final FileFilterErrorProc? errorProc;
+  final FileListErrorProc? errorProc;
 
   /// The filesystem object
   ///
@@ -49,12 +49,12 @@ class FileList {
   /// Asynchronous (non-blocking) FileList handler
   /// good for I/O manipulations
   ///
-  final FileFilterProc? filterProc;
+  final FileListProc? listProc;
 
   /// Synchronous (blocking) FileList handler
   /// good for path/basename (string) manipulations
   ///
-  final FileFilterProcSync? filterProcSync;
+  final FileListProcSync? listProcSync;
 
   /// A flag indicating what to do when an entity of the type [Link]
   /// encountered: if true, then replace with the entity it points to
@@ -93,10 +93,10 @@ class FileList {
       this.accumulate = true,
       this.allowCompoundPatterns = true,
       this.allowHidden = false,
-      this.filterProc,
-      this.filterProcSync,
-      this.errorProc,
-      this.followLinks = true}) {
+      this.followLinks = true,
+      this.listProc,
+      this.listProcSync,
+      this.errorProc}) {
     context = fs.path;
     _addPatterns(pattern, patterns, allowCompoundPatterns);
     _addRoots(root, roots);
@@ -107,8 +107,8 @@ class FileList {
 
   /// The engine, asynchronous (non-blocking))
   ///
-  bool callErrorProc(Object e, StackTrace stackTrace) =>
-      (errorProc == null ? true : errorProc!(e, stackTrace));
+  bool callErrorProc(FileSystemEntity? entity, Object e, StackTrace stackTrace) =>
+      (errorProc == null ? true : errorProc!(entity, e, stackTrace));
 
   /// The engine, asynchronous (non-blocking))
   ///
@@ -131,13 +131,27 @@ class FileList {
   ///
   Future<List<String>> _fetch(List<String> result, String root,
       {List<String>? dirNames}) async {
+    final List<FileSystemEntity> entities;
+
     // Retrieve all entites in this directory and don't catch any exception here
     //
-    final entities = await fs
-        .directory(root.isEmpty ? context.current : root)
-        .list(recursive: false, followLinks: followLinks)
-        .toList()
-      ..sort((a, b) => a.path.compareTo(b.path));
+    try {
+      entities = await fs
+          .directory(root.isEmpty ? context.current : root)
+          .list(recursive: false, followLinks: followLinks)
+          .toList()
+        ..sort((a, b) => a.path.compareTo(b.path));
+    } on Error catch (e, stackTrace) {
+      if (!callErrorProc(null, e, stackTrace)) {
+        rethrow;
+      }
+      return [];
+    } on Exception catch (e, stackTrace) {
+      if (!callErrorProc(null, e, stackTrace)) {
+        rethrow;
+      }
+      return [];
+    }
 
     final paths = <String>[];
 
@@ -149,11 +163,11 @@ class FileList {
           paths.add(matchedPath);
         }
       } on Error catch (e, stackTrace) {
-        if (!callErrorProc(e, stackTrace)) {
+        if (!callErrorProc(entity, e, stackTrace)) {
           rethrow;
         }
       } on Exception catch (e, stackTrace) {
-        if (!callErrorProc(e, stackTrace)) {
+        if (!callErrorProc(entity, e, stackTrace)) {
           rethrow;
         }
       }
@@ -210,12 +224,26 @@ class FileList {
   ///
   List<String> _fetchSync(List<String> result, String root,
       {List<String>? dirNames}) {
+    final List<FileSystemEntity> entities;
+
     // Retrieve all entites in this directory and don't catch any exception here
     //
-    final entities = fs
-        .directory(root.isEmpty ? context.current : root)
-        .listSync(recursive: false, followLinks: followLinks)
-      ..sort((a, b) => a.path.compareTo(b.path));
+    try {
+      entities = fs
+          .directory(root.isEmpty ? context.current : root)
+          .listSync(recursive: false, followLinks: followLinks)
+        ..sort((a, b) => a.path.compareTo(b.path));
+    } on Error catch (e, stackTrace) {
+      if (!callErrorProc(null, e, stackTrace)) {
+        rethrow;
+      }
+      return [];
+    } on Exception catch (e, stackTrace) {
+      if (!callErrorProc(null, e, stackTrace)) {
+        rethrow;
+      }
+      return [];
+    }
 
     final paths = <String>[];
 
@@ -227,11 +255,11 @@ class FileList {
           paths.add(matchedPath);
         }
       } on Error catch (e, stackTrace) {
-        if (!callErrorProc(e, stackTrace)) {
+        if (!callErrorProc(entity, e, stackTrace)) {
           rethrow;
         }
       } on Exception catch (e, stackTrace) {
-        if (!callErrorProc(e, stackTrace)) {
+        if (!callErrorProc(entity, e, stackTrace)) {
           rethrow;
         }
       }
@@ -288,8 +316,8 @@ class FileList {
     final result = getMatchedPathSync(entity,
         path: path, name: name, stat: stat, dirNames: dirNames);
 
-    if (result.isNotEmpty && (filterProc != null)) {
-      if (!(await filterProc!(this, path, name, stat))) {
+    if (result.isNotEmpty && (listProc != null)) {
+      if (!(await listProc!(this, path, name, stat))) {
         return '';
       }
     }
@@ -349,8 +377,8 @@ class FileList {
     }
 
     if (!isDirLink || !followLinks) {
-      if (filterProcSync != null) {
-        if (!filterProcSync!(this, path, name, stat)) {
+      if (listProcSync != null) {
+        if (!listProcSync!(this, path, name, stat)) {
           return '';
         }
       }

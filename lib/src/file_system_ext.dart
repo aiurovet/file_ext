@@ -7,7 +7,12 @@ import 'package:file_ext/file_ext.dart';
 /// A helper extension for the FileSystem API
 ///
 extension FileSystemExt on FileSystem {
-  /// Convert [aPath] to the fully qualified one
+  /// Convert [aPath] to the fully qualified path\
+  /// \
+  /// For POSIX, it calls `canonicalize()`\
+  /// For Windows, it takes an absolute path,
+  /// prepends it with the current drive (if omitted),
+  /// and resolves . and ..
   ///
   String getFullPath(String? aPath) {
     // If path is null or empty, return the current directory
@@ -88,14 +93,15 @@ extension FileSystemExt on FileSystem {
           List<String>? roots,
           String? pattern,
           List<String>? patterns,
-          bool accumulate = true,
-          bool allowHidden = false,
           FileSystemEntityType? type,
           List<FileSystemEntityType>? types,
-          FileFilterProc? filterProc,
-          FileFilterProcSync? filterProcSync,
-          FileFilterErrorProc? errorProc,
-          bool followLinks = true}) async =>
+          bool accumulate = true,
+          bool allowCompoundPatterns = true,
+          bool allowHidden = false,
+          bool followLinks = true,
+          FileListProc? listProc,
+          FileListProcSync? listProcSync,
+          FileListErrorProc? errorProc}) async =>
       await FileList(this,
               root: root,
               roots: roots,
@@ -104,28 +110,30 @@ extension FileSystemExt on FileSystem {
               type: type,
               types: types,
               accumulate: accumulate,
+              allowCompoundPatterns: allowCompoundPatterns,
               allowHidden: allowHidden,
-              filterProc: filterProc,
-              filterProcSync: filterProcSync,
-              followLinks: followLinks)
+              followLinks: followLinks,
+              listProc: listProc,
+              listProcSync: listProcSync,
+              errorProc: errorProc)
           .fetch();
 
   /// A wrapper for `FileList(...).execSync(...)`, synchronous (blocking)
   ///
-  Future<List<String>> listSync(
+  List<String> listSync(
           {String? root,
           List<String>? roots,
           String? pattern,
           List<String>? patterns,
-          bool accumulate = true,
-          bool allowHidden = false,
           FileSystemEntityType? type,
           List<FileSystemEntityType>? types,
-          FileFilterProc? filterProc,
-          FileFilterProcSync? filterProcSync,
-          FileFilterErrorProc? errorProc,
-          bool followLinks = true}) async =>
-      FileList(this,
+          bool accumulate = true,
+          bool allowCompoundPatterns = true,
+          bool allowHidden = false,
+          bool followLinks = true,
+          FileListProcSync? listProcSync,
+          FileListErrorProc? errorProc}) =>
+        FileList(this,
               root: root,
               roots: roots,
               pattern: pattern,
@@ -133,9 +141,10 @@ extension FileSystemExt on FileSystem {
               type: type,
               types: types,
               accumulate: accumulate,
+              allowCompoundPatterns: allowCompoundPatterns,
               allowHidden: allowHidden,
-              filterProc: filterProc,
-              filterProcSync: filterProcSync,
-              followLinks: followLinks)
+              followLinks: followLinks,
+              listProcSync: listProcSync,
+              errorProc: errorProc)
           .fetchSync();
 }
