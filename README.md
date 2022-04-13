@@ -15,34 +15,45 @@ import 'package:file/file.dart';
 import 'package:file/local.dart';
 import 'package:file_ext/file_ext.dart';
 
+import 'print_err_io.dart' if (dart.library.html) 'print_err_html.dart';
+
 /// A type for the argument parsing callback functions
 ///
 typedef ParseArgsProc = void Function(String);
 
 /// The actual usage
 ///
-Future printFileList(FileSystem fs, bool allowHidden, String? root,
-    List<String>? patterns) async =>
-  await fs.list(
-    root: root,
-    patterns: patterns,
-    allowHidden: allowHidden,
-    followLinks: true,
-    filterProc: (entity, takeText, skipText, options) async {
-      if ((await entity.stat()).type == FileSystemEntityType.file) {
-        print(entity.path);
-      }
-      return true;
-    },
-  );
+Future printFileList(FileSystem fs,
+        {bool allowHidden = false,
+        String? root,
+        List<String>? patterns,
+        FileSystemEntityType? type,
+        bool followLinks = false}) async =>
+    await fs.list(
+        root: root,
+        patterns: patterns,
+        accumulate: false,
+        allowHidden: allowHidden,
+        followLinks: followLinks,
+        type: type,
+        filterProcSync: (fileList, entityPath, entityName, stat) {
+          print(entityPath);
+          return true;
+        },
+        errorProc: (e, stackTrace) {
+          printErr(e.toString());
+          return true;
+        });
 
 /// Entry point
 ///
 void main(List<String> args) async {
   var allowHidden = false;
-  var fs = LocalFileSystem();
+  var followLinks = false;
+  final fs = LocalFileSystem();
   String? root;
-  var patterns = <String>[];
+  final patterns = <String>[];
+  FileSystemEntityType? type;
 
   parseArgs(args, (opt) {
     // Parsing simple options
@@ -52,18 +63,31 @@ void main(List<String> args) async {
       case '--all':
         allowHidden = true;
         return;
+      case '-d':
+      case '--directories-only':
+        type = FileSystemEntityType.directory;
+        return;
+      case '-f':
+      case '--files-only':
+        type = FileSystemEntityType.file;
+        return;
+      case '-L':
+      case '--follow-links':
+        followLinks = true;
+        return;
     }
   }, (arg) {
     // Parsing plain arguments
     //
-    if (root == null) {
-      root = arg;
-    } else {
-      patterns.add(arg);
-    }
+    patterns.add(arg);
   });
 
-  await printFileList(fs, allowHidden, root, patterns);
+  await printFileList(fs,
+      allowHidden: allowHidden,
+      root: root,
+      patterns: patterns,
+      type: type,
+      followLinks: followLinks);
 }
 
 /// A primitive command-line arguments parser (any other may be used instead)

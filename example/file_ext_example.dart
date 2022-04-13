@@ -5,8 +5,7 @@ import 'package:file/file.dart';
 import 'package:file/local.dart';
 import 'package:file_ext/file_ext.dart';
 
-import 'print_err_io.dart'
-    if (dart.library.html) 'print_error_html.dart';
+import 'print_err_io.dart' if (dart.library.html) 'print_err_html.dart';
 
 /// A type for the argument parsing callback functions
 ///
@@ -14,16 +13,20 @@ typedef ParseArgsProc = void Function(String);
 
 /// The actual usage
 ///
-Future printFileList(FileSystem fs, bool allowHidden, String? root,
-        List<String>? patterns, FileSystemEntityType? type) async =>
+Future printFileList(FileSystem fs,
+        {bool allowHidden = false,
+        String? root,
+        List<String>? patterns,
+        FileSystemEntityType? type,
+        bool followLinks = false}) async =>
     await fs.list(
         root: root,
         patterns: patterns,
         accumulate: false,
         allowHidden: allowHidden,
-        followLinks: true,
+        followLinks: followLinks,
         type: type,
-        filterProcSync: (entityPath, entityName, stat, options) {
+        filterProcSync: (fileList, entityPath, entityName, stat) {
           print(entityPath);
           return true;
         },
@@ -36,9 +39,10 @@ Future printFileList(FileSystem fs, bool allowHidden, String? root,
 ///
 void main(List<String> args) async {
   var allowHidden = false;
-  var fs = LocalFileSystem();
+  var followLinks = false;
+  final fs = LocalFileSystem();
   String? root;
-  var patterns = <String>[];
+  final patterns = <String>[];
   FileSystemEntityType? type;
 
   parseArgs(args, (opt) {
@@ -50,12 +54,16 @@ void main(List<String> args) async {
         allowHidden = true;
         return;
       case '-d':
-      case '--dirs-only':
+      case '--directories-only':
         type = FileSystemEntityType.directory;
         return;
       case '-f':
       case '--files-only':
         type = FileSystemEntityType.file;
+        return;
+      case '-L':
+      case '--follow-links':
+        followLinks = true;
         return;
     }
   }, (arg) {
@@ -64,7 +72,12 @@ void main(List<String> args) async {
     patterns.add(arg);
   });
 
-  await printFileList(fs, allowHidden, root, patterns, type);
+  await printFileList(fs,
+      allowHidden: allowHidden,
+      root: root,
+      patterns: patterns,
+      type: type,
+      followLinks: followLinks);
 }
 
 /// A primitive command-line arguments parser (any other may be used instead)

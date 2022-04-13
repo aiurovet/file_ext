@@ -4,28 +4,25 @@
 import 'package:file/file.dart';
 import 'package:file_ext/src/file_list.dart';
 
-/// An error handler accepting either Error or Exception object
-/// as the first argument\
+/// A user-defined error handler\
+/// \
 /// Returns true to continue or false to rethrow
 ///
-typedef FileFilterErrorProc = bool Function(Object, StackTrace);
+typedef FileFilterErrorProc = bool Function(
+    Object errorOrException, StackTrace stackTrace);
 
 /// A type for async callback function used by `FileSystemExt.list(...)`\
-/// or `FileSystemExt.listSync(...)` for every found entity\
+/// or `FileSystemExt.listSync(...)` for every found filesystem entity\
 /// \
-/// Passes the current filesystem entity's path, basename,
-/// filestat and all filtering options\
 /// Returns true/false to take/skip the entity
 ///
 typedef FileFilterProc = Future<bool> Function(
-    String, String, FileStat stat, FileList);
+    FileList sender, String path, String baseName, FileStat stat);
 
 /// A type for sync callback function used by `FileSystemExt.listSync(...)`
-/// for every found entity\
+/// for every found filesystem entity\
 /// \
-/// Passes the current filesystem entity's path, basename,
-/// filestat and all filtering options\
 /// Returns true/false to take/skip the entity
 ///
 typedef FileFilterProcSync = bool Function(
-    String, String, FileStat stat, FileList);
+    FileList sender, String path, String baseName, FileStat stat);

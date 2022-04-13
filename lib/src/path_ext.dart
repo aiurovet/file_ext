@@ -107,47 +107,6 @@ extension PathExt on p.Context {
         caseSensitive: isCaseSensitive);
   }
 
-  /// Canonicalize [aPath] and keep case for Windows
-  ///
-  String getFullPath(String? aPath) {
-    var full = canonicalize(adjust(aPath));
-
-    if (isCaseSensitive || (aPath == null) || aPath.isEmpty) {
-      return full;
-    }
-
-    // Path canonicalization on Windows converts the original path to lower case, so
-    // trying to keep the original parts of path as much as possible (at least, the basename)
-    //
-    var partsOfFull = full.toLowerCase().split(separator);
-    var partsOfPath = aPath.split(separator);
-
-    var cntFull = partsOfFull.length - 1;
-    var cntPath = partsOfPath.length - 1;
-
-    var isChanged = false;
-
-    for (var curFull = cntFull, curPath = cntPath;
-        (curFull >= 0) && (curPath >= 0);
-        curFull--, curPath--) {
-      var partOfFull = partsOfFull[curFull];
-      var partOfPath = partsOfPath[curPath];
-
-      if (partOfFull.length != partOfPath.length) {
-        break;
-      }
-
-      if (partOfFull != partOfPath.toLowerCase()) {
-        break;
-      }
-
-      isChanged = true;
-      partsOfFull[curFull] = partOfPath;
-    }
-
-    return (isChanged ? partsOfFull.join(separator) : full);
-  }
-
   /// Check whether [pattern] contains spoecial glob pattern characters
   ///
   static bool isGlobPattern(String? pattern) =>
@@ -232,7 +191,8 @@ extension PathExt on p.Context {
 
     subPattern = patternEx.substring(lastSepPos + 1);
 
-    if ((lastSepPos == 0) || (!isPosix && (patternEx[lastSepPos - 1] == driveSeparator))) {
+    if ((lastSepPos == 0) ||
+        (!isPosix && (patternEx[lastSepPos - 1] == driveSeparator))) {
       ++lastSepPos;
     }
 

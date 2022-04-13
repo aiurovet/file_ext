@@ -8,17 +8,25 @@ import 'package:path/path.dart' as p;
 /// A local class to gather all necessary info for list() and listSync()
 ///
 class FileList {
-  /// A regexp to split the input pattern into a list of and-patterns
+  /// A regexp to split the input pattern into a list of and-patterns\
+  /// Requires at least one trailing gap (space) between
+  /// the character and the actual pattern as well as
+  /// suggests the leading one(s)
   ///
-  final RegExp andSeparatorRE = RegExp(r'\s+>+\s*');
+  final RegExp andSeparatorRE = RegExp(r'\s+&+\s*');
 
-  /// A regexp to split the root into a list of top directories
+  /// A regexp to split the root into a list of top directories\
+  /// Suggests optional leading and trailing gaps (spaces)
   ///
   final RegExp rootSeparatorRE = RegExp(r'\s*,\s*');
 
   /// A flag indicating whether the file list needs to be accumulated
   ///
   final bool accumulate;
+
+  /// A flag enabling the use of 'and' and 'not' concepts
+  ///
+  final bool allowCompoundPatterns;
 
   /// A flag indicating hidden files should be considered or not
   /// (hidden: any sub-directory, other than '.' and '..', or the
@@ -83,90 +91,36 @@ class FileList {
       FileSystemEntityType? type,
       List<FileSystemEntityType>? types,
       this.accumulate = true,
+      this.allowCompoundPatterns = true,
       this.allowHidden = false,
       this.filterProc,
       this.filterProcSync,
       this.errorProc,
       this.followLinks = true}) {
     context = fs.path;
-    var recursive = false;
-
-    // Accumulate all patterns
-    //
-    if (pattern != null) {
-      _splitAndAddPatterns(pattern);
-    }
-    if (patterns != null) {
-      for (var x in patterns) {
-        _splitAndAddPatterns(x);
-      }
-    }
-
-    // Accumulate all roots
-    //
-    if (root != null) {
-      _splitAndAddRoots(root);
-    }
-    if (roots != null) {
-      for (var x in roots) {
-        _splitAndAddRoots(x);
-      }
-    }
-
-    // Gather all types
-    //
-    if (type != null) {
-      this.types.add(type);
-    }
-    if (types != null) {
-      this.types.addAll(types);
-    }
-
-    // Split compound pattern list string into plain glob/regexp
-    // patterns and create filters
-    //
-    for (final pattern in this.patterns) {
-      var filter = FileFilter(pattern, context: context);
-
-      if (filter.glob?.recursive ?? false) {
-        recursive = true;
-      }
-
-      filters.add(filter);
-    }
-
-    // Set overall recursive flag
-    //
-    this.recursive = recursive;
-
-    // Merge the root with the primary (first) filter root
-    //
-    var filter = (filters.isEmpty ? null : filters[0]);
-
-    if (this.roots.isEmpty) {
-      this.roots.add(filter?.root ?? '');
-      filter?.root = '';
-    } else if ((filter != null) && filter.root.isNotEmpty) {
-      for (var i = 0, n = this.roots.length; i < n; i++) {
-        this.roots[i] = fs.path.join(this.roots[i], filter.root);
-      }
-    }
+    _addPatterns(pattern, patterns, allowCompoundPatterns);
+    _addRoots(root, roots);
+    _addTypes(type, types);
+    _addFilters();
+    _adjustRoots();
   }
 
   /// The engine, asynchronous (non-blocking))
   ///
   bool callErrorProc(Object e, StackTrace stackTrace) =>
-    (errorProc == null ? true : errorProc!(e, stackTrace));
+      (errorProc == null ? true : errorProc!(e, stackTrace));
 
   /// The engine, asynchronous (non-blocking))
   ///
-  Future<List<String>> exec() async {
+  Future<List<String>> fetch() async {
+    var dirNames = <String>[];
     var result = <String>[];
 
     // Accumulate filtered entities
     //
     for (final root in roots) {
-      await _exec(result, root);
+      dirNames = [await fs.directory(root).resolveSymbolicLinks()];
+      await _fetch(result, root, dirNames: dirNames);
     }
 
     return result;
@@ -175,12 +129,12 @@ class FileList {
   /// The essential part of `exec(...)`: does everything after the [options]
   /// object created and the next root taken
   ///
-  Future<List<String>> _exec(
-      List<String> result, String root) async {
+  Future<List<String>> _fetch(List<String> result, String root,
+      {List<String>? dirNames}) async {
     // Retrieve all entites in this directory and don't catch any exception here
     //
-
-    final entities = await fs.directory(root)
+    final entities = await fs
+        .directory(root.isEmpty ? context.current : root)
         .list(recursive: false, followLinks: followLinks)
         .toList()
       ..sort((a, b) => a.path.compareTo(b.path));
@@ -189,7 +143,7 @@ class FileList {
 
     for (final entity in entities) {
       try {
-        final matchedPath = await getMatchedPath(entity);
+        final matchedPath = await getMatchedPath(entity, dirNames: dirNames);
 
         if (matchedPath.isNotEmpty) {
           paths.add(matchedPath);
@@ -207,7 +161,7 @@ class FileList {
 
     // Make the access faster
     //
-    final sep = fs.path.separator;
+    final sep = context.separator;
 
     // Add the list of paths under the current root to the result
     // (no sub-directories yet)
@@ -224,7 +178,7 @@ class FileList {
         final path = paths[i];
 
         if (path.endsWith(sep)) {
-          await _exec(result, path);
+          await _fetch(result, path, dirNames: dirNames);
         }
       }
     }
@@ -236,13 +190,15 @@ class FileList {
 
   /// The engine, synchronous (blocking))
   ///
-  List<String> execSync() {
+  List<String> fetchSync() {
+    var dirNames = <String>[];
     var result = <String>[];
 
     // Accumulate filtered entities
     //
     for (final root in roots) {
-      _execSync(result, root);
+      dirNames = [fs.directory(root).resolveSymbolicLinksSync()];
+      _fetchSync(result, root, dirNames: dirNames);
     }
 
     return result;
@@ -252,11 +208,12 @@ class FileList {
   /// [options] object created. This separation is needed for recursion
   /// which does require the [options] re-creation
   ///
-  List<String> _execSync(
-      List<String> result, String root) {
+  List<String> _fetchSync(List<String> result, String root,
+      {List<String>? dirNames}) {
     // Retrieve all entites in this directory and don't catch any exception here
     //
-    final entities = fs.directory(root)
+    final entities = fs
+        .directory(root.isEmpty ? context.current : root)
         .listSync(recursive: false, followLinks: followLinks)
       ..sort((a, b) => a.path.compareTo(b.path));
 
@@ -264,7 +221,7 @@ class FileList {
 
     for (final entity in entities) {
       try {
-        final matchedPath = getMatchedPathSync(entity);
+        final matchedPath = getMatchedPathSync(entity, dirNames: dirNames);
 
         if (matchedPath.isNotEmpty) {
           paths.add(matchedPath);
@@ -282,7 +239,7 @@ class FileList {
 
     // Make the access faster
     //
-    final sep = fs.path.separator;
+    final sep = context.separator;
 
     // Add the list of paths under the current root to the result
     // (no sub-directories yet)
@@ -299,7 +256,7 @@ class FileList {
         final path = result[i];
 
         if (path.endsWith(sep)) {
-          _execSync(result, path);
+          _fetchSync(result, path, dirNames: dirNames);
         }
       }
     }
@@ -319,16 +276,20 @@ class FileList {
   /// separator appended if it is not there yet
   ///
   Future<String> getMatchedPath(FileSystemEntity entity,
-      {String? path, String? name, FileStat? stat}) async {
+      {String? path,
+      String? name,
+      FileStat? stat,
+      String? resolved,
+      List<String>? dirNames}) async {
     stat ??= await entity.stat();
     path ??= entity.path;
     name ??= context.basename(path);
 
-    final result =
-        getMatchedPathSync(entity, path: path, name: name, stat: stat);
+    final result = getMatchedPathSync(entity,
+        path: path, name: name, stat: stat, dirNames: dirNames);
 
     if (result.isNotEmpty && (filterProc != null)) {
-      if (!(await filterProc!(path, name, stat, this))) {
+      if (!(await filterProc!(this, path, name, stat))) {
         return '';
       }
     }
@@ -345,7 +306,11 @@ class FileList {
   /// separator appended if it is not there yet
   ///
   String getMatchedPathSync(FileSystemEntity entity,
-      {String? path, String? name, FileStat? stat}) {
+      {String? path,
+      String? name,
+      FileStat? stat,
+      String? resolved,
+      List<String>? dirNames}) {
     path ??= entity.path;
 
     if (!allowHidden && context.isHidden(path)) {
@@ -355,9 +320,20 @@ class FileList {
     name ??= context.basename(path);
     stat ??= entity.statSync();
 
-    if (types.isNotEmpty) {
-      if (!types.contains(stat.type)) {
-        return '';
+    if (types.isNotEmpty && !types.contains(stat.type)) {
+      return '';
+    }
+
+    var isDirLink = false;
+
+    if (stat.type == FileSystemEntityType.directory) {
+      resolved ??= fs.directory(path).resolveSymbolicLinksSync();
+
+      if (dirNames != null) {
+        if ((resolved != path) && dirNames.contains(resolved)) {
+          isDirLink = true;
+        }
+        dirNames.add(resolved);
       }
     }
     for (final filter in filters) {
@@ -365,28 +341,115 @@ class FileList {
         return '';
       }
     }
-    if (filterProcSync != null) {
-      if (!filterProcSync!(path, name, stat, this)) {
-        return '';
-      }
-    }
 
     final sep = context.separator;
 
     if ((stat.type == FileSystemEntityType.directory) && !path.endsWith(sep)) {
-      return path + sep;
+      path += sep;
     }
 
-    return path;
+    if (!isDirLink || !followLinks) {
+      if (filterProcSync != null) {
+        if (!filterProcSync!(this, path, name, stat)) {
+          return '';
+        }
+      }
+    }
+
+    return (isDirLink ? '' : path);
   }
 
-  /// Split [root] and add to [roots]
+  /// Create filters from patterns and accumulate
   ///
-  void _splitAndAddPatterns(String pattern) =>
-      patterns.addAll(pattern.split(andSeparatorRE));
+  void _addFilters() {
+    var recursive = false;
 
-  /// Split [root] and add to [roots]
+    for (final pattern in patterns) {
+      var filter = FileFilter(pattern, context: context);
+
+      if (filter.glob?.recursive ?? false) {
+        recursive = true;
+      }
+
+      filters.add(filter);
+    }
+
+    this.recursive = recursive;
+  }
+
+  /// Split every string pattern and accumulate
   ///
-  void _splitAndAddRoots(String root) =>
-      roots.addAll(root.split(rootSeparatorRE));
+  void _addPatterns(String? pattern, List<String>? patterns, bool allowCompoundPatterns) {
+    _splitAndAddStrings(this.patterns, pattern, patterns, allowCompoundPatterns);
+
+    if (this.patterns.isEmpty) {
+      this.patterns.add(PathExt.anyPattern);
+    }
+  }
+
+  /// Split every top directory name and accumulate
+  ///
+  void _addRoots(String? root, List<String>? roots) =>
+      _splitAndAddStrings(this.roots, root, roots, false);
+
+  /// Accumulate all filtering types
+  ///
+  void _addTypes(
+      FileSystemEntityType? type, List<FileSystemEntityType>? types) {
+    if (type != null) {
+      this.types.add(type);
+    }
+    if (types != null) {
+      this.types.addAll(types);
+    }
+  }
+
+  /// For each root, merge it with the primary (first) filter root
+  ///
+  void _adjustRoots() {
+    if (roots.isEmpty) {
+      if (filters.isEmpty) {
+        roots.add(PathExt.shortCurDirName);
+      } else {
+        roots.add(filters[0].root);
+        filters[0].root = '';
+      }
+      return;
+    }
+
+    var filter = filters[0];
+
+    if (roots.isEmpty) {
+      roots.add(filter.root);
+      filters[0].root = '';
+      return;
+    }
+
+    for (var i = 0, n = roots.length; i < n; i++) {
+      filter = filters[i];
+      roots[i] = context.join(roots[i], filter.root);
+      filter.root = '';
+    }
+  }
+
+  /// Split every string pattern and add to the destination list
+  ///
+  void _splitAndAddStrings(List<String> to, String? from, List<String>? froms, bool allowCompoundPatterns) {
+    if (from != null) {
+      if (allowCompoundPatterns) {
+        to.addAll(from.split(andSeparatorRE));
+      } else {
+        to.add(from);
+      }
+    }
+    if (froms != null) {
+      if (allowCompoundPatterns) {
+        for (var x in froms) {
+          to.addAll(x.split(andSeparatorRE));
+        }
+      } else {
+        to.addAll(froms);
+      }
+    }
+  }
 }
