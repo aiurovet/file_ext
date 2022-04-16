@@ -1,6 +1,8 @@
 // Copyright (c) 2022, Alexander Iurovetski
 // All rights reserved under MIT license (see LICENSE file)
 
+import 'package:file/file.dart';
+import 'package:file/local.dart';
 import 'package:file_ext/file_ext.dart';
 import 'package:glob/glob.dart';
 import 'package:path/path.dart' as p;
@@ -8,17 +10,21 @@ import 'package:path/path.dart' as p;
 /// A supplementary class for `list(...)` and `listSync(...)` of `FileSystemExt`
 ///
 class FileFilter {
-  /// A regexp to discover negation like: `-*.obj``\
+  /// A regexp to discover negation like: `~*.obj``\
   /// Requires the actual pattern not to start with -\
   /// All white spaces (spaces, tabs, new line characters)
   /// surrounding the negation are removed, multiple
   /// negations are treated as a single one
   ///
-  static final RegExp negationRE = RegExp(r'^\s*-+\s*');
+  static final RegExp negationRE = RegExp(r'^\s*<>+\s*');
+
+  /// The filesystem object
+  ///
+  late final FileSystem fileSystem;
 
   /// The context object
   ///
-  late final p.Context context;
+  late final p.Context path;
 
   /// The glob object
   ///
@@ -49,22 +55,31 @@ class FileFilter {
 
   /// The constructor
   ///
-  FileFilter(this.pattern,
-      {p.Context? context,
-      bool allowCompoundPatterns = true,
+  FileFilter(FileSystem? fileSystem) {
+    this.fileSystem = fileSystem ?? LocalFileSystem();
+    path = this.fileSystem.path;
+  }
+
+  /// The method to set pattern (async)
+  ///
+  Future setPattern(String pattern,
+      {bool allowCompoundPatterns = true,
+      bool? caseSensitive,
+      bool? negative}) async {
+    _getPatternAndNegative(pattern, allowCompoundPatterns, negative);
+    _setPattern(allowCompoundPatterns, caseSensitive, negative,
+        await fileSystem.isDirectory(this.pattern));
+  }
+
+  /// The method to set pattern (async)
+  ///
+  void setPatternSync(String pattern,
+      {bool allowCompoundPatterns = true,
       bool? caseSensitive,
       bool? negative}) {
-    this.context = context ?? p.Context();
-    var straight =
-        _getStraightPattern(pattern, allowCompoundPatterns, negative);
-
-    if (PathExt.isRegExpPattern(straight)) {
-      _createRegExpObject(
-          straight, allowCompoundPatterns, caseSensitive, negative);
-    } else {
-      _createGlobObject(
-          straight, allowCompoundPatterns, caseSensitive, negative);
-    }
+    _getPatternAndNegative(pattern, allowCompoundPatterns, negative);
+    _setPattern(allowCompoundPatterns, caseSensitive, negative,
+        fileSystem.isDirectorySync(this.pattern));
   }
 
   /// Check the [path] matches the straight pattern (without the leading negation
@@ -80,47 +95,59 @@ class FileFilter {
   @override
   String toString() => pattern;
 
-  /// Get the actual glob object for the filesystem entities filtering
-  /// [straightPattern] is guaranteed not to have negation prefix
+  /// Get the actual glob object for the filesystem entities filtering,
+  /// at this point, the pattern is guaranteed to be without the negation
+  /// prefix
   ///
-  void _createGlobObject(String straightPattern, bool allowCompoundPatterns,
-      bool? caseSensitive, bool? negative) {
-    final parts = context.splitPattern(straightPattern);
+  void _createGlobObject(
+      bool allowCompoundPatterns, bool? caseSensitive, bool? negative) {
+    final parts = path.splitPattern(pattern);
     root = parts[0];
     pattern = parts[1];
-    matchPath = pattern.contains(context.separator);
+    matchPath = pattern.contains(path.separator);
 
     regexp = null;
     glob = Glob(pattern,
-        context: context,
+        context: path,
         recursive: PathExt.isRecursiveGlobPattern(parts[1]),
         caseSensitive: caseSensitive);
   }
 
   /// Get the actual regexp object for the filesystem entities filtering
   ///
-  void _createRegExpObject(String pattern, bool allowCompoundPatterns,
-      bool? caseSensitive, bool? negative) {
-    pattern = context.adjustEscaped(pattern);
-    matchPath = pattern.contains(context.separatorEscaped);
+  void _createRegExpObject(
+      bool allowCompoundPatterns, bool? caseSensitive, bool? negative) {
+    pattern = path.adjustEscaped(pattern);
+    matchPath = pattern.contains(path.separatorEscaped);
     glob = null;
     regexp = RegExp(pattern, caseSensitive: caseSensitive ?? false);
   }
 
   /// Remove all leading negation chars from [pattern] and set [negative] flag
   ///
-  String _getStraightPattern(
+  void _getPatternAndNegative(
       String pattern, bool allowCompoundPatterns, bool? negative) {
     if (allowCompoundPatterns && (negative == null)) {
       var match = negationRE.firstMatch(pattern);
 
       if ((match != null) && (match.start == 0)) {
         this.negative = true;
-        return pattern.substring(match.end);
+        this.pattern = pattern.substring(match.end);
       }
     }
 
     this.negative = false;
-    return pattern;
+    this.pattern = pattern;
+  }
+
+  /// The method to set pattern (async)
+  ///
+  void _setPattern(bool allowCompoundPatterns, bool? caseSensitive,
+      bool? negative, bool isDirectory) {
+    if (PathExt.isRegExpPattern(pattern)) {
+      _createRegExpObject(allowCompoundPatterns, caseSensitive, negative);
+    } else {
+      _createGlobObject(allowCompoundPatterns, caseSensitive, negative);
+    }
   }
 }

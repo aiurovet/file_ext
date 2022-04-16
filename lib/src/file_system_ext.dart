@@ -133,7 +133,7 @@ extension FileSystemExt on FileSystem {
           bool followLinks = true,
           FileListProcSync? listProcSync,
           FileListErrorProc? errorProc}) =>
-        FileList(this,
+      FileList(this,
               root: root,
               roots: roots,
               pattern: pattern,

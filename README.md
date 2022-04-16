@@ -23,13 +23,13 @@ typedef ParseArgsProc = void Function(String);
 
 /// The actual usage
 ///
-Future printFileList(FileSystem fs,
+Future printFileList(FileSystem fileSystem,
         {bool allowHidden = false,
         String? root,
         List<String>? patterns,
         FileSystemEntityType? type,
         bool followLinks = false}) async =>
-    await fs.list(
+    await fileSystem.list(
         root: root,
         patterns: patterns,
         accumulate: false,

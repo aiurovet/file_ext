@@ -25,7 +25,7 @@ void main() {
 
     final pat = <String>[
       '$top1/*.doc',
-      '$sub22/**.{txt,lst} > !\\/file[13][12]'
+      '$sub22/**.{txt,lst} & -\\/file[13][12]'
     ];
 
     FileList? fl;

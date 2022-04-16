@@ -11,12 +11,12 @@ void main() {
   MemoryFileSystemExt.forEach((fs) {
     final fsp = fs.path;
     final sep = fsp.separator;
-    final neg = '-';
+    final neg = '<>';
 
     group('FileFilter - ${fs.styleName} -', () {
       test('empty', () {
-        var ff = FileFilter('', context: fsp);
-        expect(ff.root, '.');
+        var ff = FileFilter(fs)..setPattern('');
+        expect(ff.root, '');
         expect(ff.pattern, '*');
         expect(ff.matchPath, false);
         expect(ff.negative, false);
@@ -24,26 +24,35 @@ void main() {
         expect(ff.regexp, null);
       });
       test('root dir', () {
-        var ff = FileFilter('/', context: fsp);
+        var ff = FileFilter(fs)..setPattern('/');
         expect(ff.root, sep);
         expect(ff.pattern, '*');
-        expect(ff.matchPath, true);
+        expect(ff.matchPath, false);
         expect(ff.negative, false);
         expect(ff.glob?.recursive, false);
         expect(ff.regexp, null);
       });
       test('recursive', () {
-        var ff = FileFilter('a/bc/**.txt', context: fsp);
+        var ff = FileFilter(fs)..setPattern('a/bc/**.txt');
         expect(ff.root, 'a${sep}bc');
         expect(ff.pattern, '**.txt');
+        expect(ff.matchPath, false);
+        expect(ff.negative, false);
+        expect(ff.glob?.recursive, true);
+        expect(ff.regexp, null);
+      });
+      test('recursive including directories', () {
+        var ff = FileFilter(fs)..setPattern('a/b*c/**.txt');
+        expect(ff.root, 'a');
+        expect(ff.pattern, 'b*c$sep**.txt');
         expect(ff.matchPath, true);
         expect(ff.negative, false);
         expect(ff.glob?.recursive, true);
         expect(ff.regexp, null);
       });
       test('regexp', () {
-        var ff = FileFilter('^([ab]|[yz])', context: fsp);
-        expect(ff.root, '.');
+        var ff = FileFilter(fs)..setPattern('^([ab]|[yz])');
+        expect(ff.root, '');
         expect(ff.pattern, '^([ab]|[yz])');
         expect(ff.matchPath, false);
         expect(ff.negative, false);
@@ -51,28 +60,10 @@ void main() {
         expect(ff.regexp?.pattern, ff.pattern);
       });
       test('negative', () {
-        var ff = FileFilter('$neg /a/b/*.txt', context: fsp);
+        var ff = FileFilter(fs)..setPattern('$neg /a/b/*.txt');
         expect(ff.root, '${sep}a${sep}b');
         expect(ff.pattern, '*.txt');
-        expect(ff.matchPath, true);
-        expect(ff.negative, true);
-        expect(ff.glob?.pattern, '*.txt');
-        expect(ff.regexp, null);
-      });
-      test('escaped negation', () {
-        var ff = FileFilter('$neg$neg/a/b/*.txt', context: fsp);
-        expect(ff.root, '${sep}a${sep}b');
-        expect(ff.pattern, '*.txt');
-        expect(ff.matchPath, true);
-        expect(ff.negative, true);
-        expect(ff.glob?.pattern, '*.txt');
-        expect(ff.regexp, null);
-      });
-      test('negative followed by escaped negation', () {
-        var ff = FileFilter('$neg$neg$neg/a/b/*.txt', context: fsp);
-        expect(ff.root, '${sep}a${sep}b');
-        expect(ff.pattern, '*.txt');
-        expect(ff.matchPath, true);
+        expect(ff.matchPath, false);
         expect(ff.negative, true);
         expect(ff.glob?.pattern, '*.txt');
         expect(ff.regexp, null);

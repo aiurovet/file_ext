@@ -1,6 +1,7 @@
 // Copyright (c) 2022, Alexander Iurovetski
 // All rights reserved under MIT license (see LICENSE file)
 
+import 'package:file/file.dart';
 import 'package:glob/glob.dart';
 import 'package:path/path.dart' as p;
 
@@ -93,6 +94,26 @@ extension PathExt on p.Context {
       return aPath;
     }
     return aPath.replaceAll(altSeparatorEscaped, separatorEscaped);
+  }
+
+  String adjustTrailingSeparator(String? aPath, FileSystemEntityType type,
+      {bool append = false}) {
+    if ((aPath == null) || aPath.isEmpty) {
+      return '';
+    }
+
+    final lastPos = aPath.length - 1;
+
+    if (aPath[lastPos] == separator) {
+      if (!isPosix) {
+        if ((lastPos >= 1) && (aPath[lastPos - 1] == driveSeparator)) {
+          return aPath;
+        }
+      }
+      return (append ? aPath : aPath.substring(0, lastPos - 1));
+    }
+
+    return (append ? aPath + separator : aPath);
   }
 
   /// Convert [pattern] string to a proper glob object

@@ -13,26 +13,27 @@ typedef ParseArgsProc = void Function(String);
 
 /// The actual usage
 ///
-Future printFileList(FileSystem fs,
+Future printFileList(FileSystem fileSystem,
         {bool allowHidden = false,
         String? root,
         List<String>? patterns,
         FileSystemEntityType? type,
         bool followLinks = false}) async =>
-    await fs.list(
+    await fileSystem.list(
         root: root,
         patterns: patterns,
         accumulate: false,
         allowHidden: allowHidden,
         followLinks: followLinks,
         type: type,
-        listProcSync: (fileList, entityPath, entityName, stat) {
-          print(entityPath);
+        listProcSync: (fileList, ea) {
+          print(fileSystem.path
+              .adjustTrailingSeparator(ea.path, ea.type, append: true));
           return true;
         },
-        errorProc: (entity, e, stackTrace) {
-          if (entity != null) {
-            printErr(e.toString());
+        errorProc: (fileList, ea) {
+          if (ea.path.isNotEmpty) {
+            printErr((ea.error ?? ea.exception).toString());
           }
           return true; // continue
         });
