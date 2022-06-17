@@ -14,7 +14,7 @@ extension PathExt on p.Context {
 
   /// A variant of [altSeparator] for regexp patterns
   ///
-  static const altSeparatorEscaped = r'\\';
+  static const altSeparatorEscaped = altSeparator;
 
   /// A pattern to list any file system element
   ///
@@ -39,16 +39,16 @@ extension PathExt on p.Context {
 
   /// A pattern to locate glob patterns
   ///
-  static final globPatternRE = RegExp(r'[\*\?\{\[]', caseSensitive: false);
+  static final _globPatternRE = RegExp(r'[!\*\?\{\[]', caseSensitive: false);
 
   /// A regexp to filter hidden files
   ///
-  static final RegExp hiddenRE = RegExp(r'(^|[\/\\])\.[^\.\/\\]');
+  static final RegExp _hiddenRE = RegExp(r'^\.|[/\\]\.');
 
   /// A pattern to locate a combination of glob characters which means recursive directory scan
   ///
-  static final isRecursiveGlobPatternRE =
-      RegExp(r'\*\*|[\*\?].*[\/\\]', caseSensitive: false);
+  static final _isRecursiveGlobPatternRE =
+      RegExp(r'\*\*|[\*\?].*[/\\]', caseSensitive: false);
 
   /// A pattern to locate regular expression patterns
   ///
@@ -60,7 +60,7 @@ extension PathExt on p.Context {
 
   /// A variant of [separator] for regexp patterns
   ///
-  String get separatorEscaped => '\\$separator';
+  String get separatorEscaped => RegExp.escape(separator);
 
   /// A short name of the current directory
   ///
@@ -100,16 +100,22 @@ extension PathExt on p.Context {
     if ((aPath == null) || aPath.isEmpty) {
       return '';
     }
+    if (type != FileSystemEntityType.directory) {
+      return aPath;
+    }
 
     final lastPos = aPath.length - 1;
+    final lastChr = aPath[lastPos];
 
-    if (aPath[lastPos] == separator) {
+    if (lastChr == separator) {
       if (!isPosix) {
         if ((lastPos >= 1) && (aPath[lastPos - 1] == driveSeparator)) {
           return aPath;
         }
       }
-      return (append ? aPath : aPath.substring(0, lastPos - 1));
+      return (append ? aPath : aPath.substring(0, lastPos));
+    } else if ((lastChr == driveSeparator) && append && !isPosix) {
+      return aPath + shortCurDirName + separator;
     }
 
     return (append ? aPath + separator : aPath);
@@ -130,13 +136,13 @@ extension PathExt on p.Context {
   /// Check whether [pattern] contains spoecial glob pattern characters
   ///
   static bool isGlobPattern(String? pattern) =>
-      (pattern != null) && globPatternRE.hasMatch(pattern);
+      (pattern != null) && _globPatternRE.hasMatch(pattern);
 
   /// Check whether [aPath] represents a hidden file or directory:
   /// i.e. [aPath] contains a sub-dir or a filename starting with
   /// a dot
   ///
-  bool isHidden(String aPath) => hiddenRE.hasMatch(aPath);
+  bool isHidden(String aPath) => _hiddenRE.hasMatch(aPath);
 
   /// Return true if [aPath] contains a separator
   /// Under Windows, return true also if [aPath] contains
@@ -174,7 +180,7 @@ extension PathExt on p.Context {
   /// Check whether [pattern] indicates recursive directory scan
   ///
   static bool isRecursiveGlobPattern(String? pattern) =>
-      (pattern != null) && isRecursiveGlobPatternRE.hasMatch(pattern);
+      (pattern != null) && _isRecursiveGlobPatternRE.hasMatch(pattern);
 
   /// Check whether [pattern] contains spoecial glob pattern characters
   ///
@@ -200,7 +206,7 @@ extension PathExt on p.Context {
       return ['', patternEx];
     }
 
-    var globPos = globPatternRE.firstMatch(patternEx)?.start ?? -1;
+    var globPos = _globPatternRE.firstMatch(patternEx)?.start ?? -1;
     var subPattern =
         (globPos < 0 ? patternEx : patternEx.substring(0, globPos));
     var lastSepPos = subPattern.lastIndexOf(separator);
