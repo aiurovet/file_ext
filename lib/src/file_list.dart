@@ -10,17 +10,6 @@ import 'package:path/path.dart' as p;
 /// A local class to gather all necessary info for list() and listSync()
 ///
 class FileList {
-  /// A list of expected types
-  ///
-  static const String _empty = '';
-
-  /// A regexp to split the input pattern into a list of and-patterns\
-  /// Requires at least one trailing gap (space) between
-  /// the character and the actual pattern as well as
-  /// suggests the leading one(s)
-  ///
-  final RegExp andSeparatorRE = RegExp(r'\s+&+\s*');
-
   /// A regexp to split the root into a list of top directories\
   /// Suggests optional leading and trailing gaps (spaces)
   ///
@@ -30,15 +19,15 @@ class FileList {
   ///
   final bool accumulate;
 
-  /// A flag enabling the use of 'and' and 'not' concepts
-  ///
-  final bool allowCompoundPatterns;
-
   /// A flag indicating hidden files should be considered or not
   /// (hidden: any sub-directory, other than '.' and '..', or the
   /// basename, starts with '.')
   ///
   final bool allowHidden;
+
+  /// A flag indicating whether filtering is case-sensitive or not, or OS-specific
+  ///
+  final bool? caseSensitive;
 
   /// An error handler
   ///
@@ -48,7 +37,8 @@ class FileList {
   ///
   final FileSystem fileSystem;
 
-  /// A glob pattern to not match file and directory paths or names against
+  /// A list of filters created based on the list of patterns\
+  /// Gets populated on `fetch()` or `fetchSync()` call
   ///
   final List<FileFilter> filters = [];
 
@@ -77,7 +67,7 @@ class FileList {
 
   /// A list of patterns
   ///
-  final List<String> patterns = [];
+  final List<FilePattern> patterns = [];
 
   /// A list of the longest directories not containing wildcards and the other glob elements
   ///
@@ -92,25 +82,24 @@ class FileList {
   FileList(this.fileSystem,
       {String? root,
       List<String>? roots,
-      String? pattern,
-      List<String>? patterns,
+      FilePattern? pattern,
+      List<FilePattern>? patterns,
       FileSystemEntityType? type,
       List<FileSystemEntityType>? types,
+      this.caseSensitive,
       this.accumulate = true,
-      this.allowCompoundPatterns = true,
       this.allowHidden = false,
       this.followLinks = true,
       this.listProc,
       this.listProcSync,
       this.errorProc}) {
     path = fileSystem.path;
-    _addPatterns(pattern, patterns, allowCompoundPatterns);
+    _addPatterns(pattern, patterns);
     _addRoots(root, roots);
     _addTypes(type, types);
-    setFilters();
   }
 
-  /// The engine, asynchronous (non-blocking))
+  /// Call error handler if it is set
   ///
   bool callErrorProc(FileListEntityEventArgs? entityArgs, Error? error,
       Exception? exception, StackTrace stackTrace) {
@@ -126,32 +115,44 @@ class FileList {
             stackTrace: stackTrace));
   }
 
-  /// The engine, asynchronous (non-blocking))
+  /// The engine, asynchronous (non-blocking)
   ///
   Future<List<String>> fetch() async {
+    await setFilters();
+
     var dirNames = <String>[];
     var result = <String>[];
 
     // Accumulate filtered entities
     //
     for (final root in roots) {
-      dirNames = [await fileSystem.directory(root).resolveSymbolicLinks()];
+      if (root.isEmpty) {
+        dirNames = [root];
+      } else {
+        dirNames = [await fileSystem.directory(root).resolveSymbolicLinks()];
+      }
       await _fetch(result, root, dirNames);
     }
 
     return result;
   }
 
-  /// The engine, synchronous (blocking))
+  /// The engine, synchronous (blocking)
   ///
   List<String> fetchSync() {
+    setFiltersSync();
+
     var dirNames = <String>[];
     var result = <String>[];
 
     // Accumulate filtered entities
     //
     for (final root in roots) {
-      dirNames = [fileSystem.directory(root).resolveSymbolicLinksSync()];
+      if (root.isEmpty) {
+        dirNames = [root];
+      } else {
+        dirNames = [fileSystem.directory(root).resolveSymbolicLinksSync()];
+      }
       _fetchSync(result, root, dirNames);
     }
 
@@ -168,13 +169,23 @@ class FileList {
       return false;
     }
 
+    var hasDirectFilter = false;
+    var hasDirectMatch = false;
+
     for (final filter in filters) {
-      if (!filter.matches(entityArgs.path, entityArgs.baseName)) {
-        return false;
+      if (filter.inverse) {
+        if (!filter.matches(entityArgs.path, entityArgs.baseName)) {
+          return false; // AND
+        }
+      } else {
+        hasDirectFilter = true;
+
+        if (filter.matches(entityArgs.path, entityArgs.baseName)) {
+          hasDirectMatch = true; // OR
+        }
       }
     }
-
-    return true;
+    return (!hasDirectFilter || hasDirectMatch);
   }
 
   /// Returns true if the given path passes `isHidden(...)` test,\
@@ -184,10 +195,17 @@ class FileList {
   ///
   Future<bool> getMatchedPathAndCallProc(
       FileListEntityEventArgs entityArgs, List<String> dirNames) async {
-    if (!getMatchedPath(entityArgs, dirNames)) {
-      return false;
+    final isNewDir = await entityArgs.isNewDirectory(dirNames);
+
+    if (isNewDir != null) {
+      if (!isNewDir) {
+        return false;
+      }
+      if (recursive) {
+        return true;
+      }
     }
-    if (!(await entityArgs.isNewDirectory(dirNames))) {
+    if (!getMatchedPath(entityArgs, dirNames)) {
       return false;
     }
     if (entityArgs.isLink && followLinks) {
@@ -195,7 +213,6 @@ class FileList {
         return false;
       }
     }
-
     if (listProcSync != null) {
       if (!listProcSync!(this, entityArgs)) {
         return false;
@@ -206,7 +223,6 @@ class FileList {
         return false;
       }
     }
-
     return true;
   }
 
@@ -216,10 +232,17 @@ class FileList {
   ///
   bool getMatchedPathAndCallProcSync(
       FileListEntityEventArgs entityArgs, List<String> dirNames) {
-    if (!getMatchedPath(entityArgs, dirNames)) {
-      return false;
+    final isNewDir = entityArgs.isNewDirectorySync(dirNames);
+
+    if (isNewDir != null) {
+      if (!isNewDir) {
+        return false;
+      }
+      if (recursive) {
+        return true;
+      }
     }
-    if (!entityArgs.isNewDirectorySync(dirNames)) {
+    if (!getMatchedPath(entityArgs, dirNames)) {
       return false;
     }
     if (entityArgs.isLink && followLinks) {
@@ -227,13 +250,11 @@ class FileList {
         return false;
       }
     }
-
     if (listProcSync != null) {
       if (!listProcSync!(this, entityArgs)) {
         return false;
       }
     }
-
     return true;
   }
 
@@ -243,7 +264,8 @@ class FileList {
     var recursive = false;
 
     for (final pattern in patterns) {
-      var filter = FileFilter(fileSystem)..setPattern(pattern);
+      var filter = FileFilter(fileSystem);
+      await filter.setPattern(pattern);
 
       if (filter.glob?.recursive ?? false) {
         recursive = true;
@@ -263,7 +285,8 @@ class FileList {
     var recursive = false;
 
     for (final pattern in patterns) {
-      var filter = FileFilter(fileSystem)..setPatternSync(pattern);
+      var filter = FileFilter(fileSystem);
+      filter.setPatternSync(pattern);
 
       if (filter.glob?.recursive ?? false) {
         recursive = true;
@@ -277,22 +300,31 @@ class FileList {
     _adjustRoots();
   }
 
+  /// Split every string pattern and add to the destination list
+  ///
+  void _addAll<T>(List<T> to, T? from, List<T>? froms) {
+    if (from != null) {
+      to.add(from);
+    }
+    if (froms != null) {
+      to.addAll(froms);
+    }
+  }
+
   /// Split every string pattern and accumulate
   ///
-  void _addPatterns(
-      String? pattern, List<String>? patterns, bool allowCompoundPatterns) {
-    _splitAndAddStrings(
-        this.patterns, pattern, patterns, allowCompoundPatterns);
+  void _addPatterns(FilePattern? pattern, List<FilePattern>? patterns) {
+    _addAll(this.patterns, pattern, patterns);
 
     if (this.patterns.isEmpty) {
-      this.patterns.add(PathExt.anyPattern);
+      this.patterns.add(FilePattern.any);
     }
   }
 
   /// Split every top directory name and accumulate
   ///
   void _addRoots(String? root, List<String>? roots) =>
-      _splitAndAddStrings(this.roots, root, roots, false);
+      _addAll(this.roots, root, roots);
 
   /// Accumulate all filtering types
   ///
@@ -314,7 +346,7 @@ class FileList {
         roots.add(PathExt.shortCurDirName);
       } else {
         roots.add(filters[0].root);
-        filters[0].root = _empty;
+        filters[0].root = '';
       }
       return;
     }
@@ -323,14 +355,14 @@ class FileList {
 
     if (roots.isEmpty) {
       roots.add(filter.root);
-      filters[0].root = _empty;
+      filters[0].root = '';
       return;
     }
 
     for (var i = 0, n = roots.length; i < n; i++) {
       filter = filters[i];
       roots[i] = path.join(roots[i], filter.root);
-      filter.root = _empty;
+      filter.root = '';
     }
   }
 
@@ -488,27 +520,5 @@ class FileList {
     // Return result
     //
     return result;
-  }
-
-  /// Split every string pattern and add to the destination list
-  ///
-  void _splitAndAddStrings(List<String> to, String? from, List<String>? froms,
-      bool allowCompoundPatterns) {
-    if (from != null) {
-      if (allowCompoundPatterns) {
-        to.addAll(from.split(andSeparatorRE));
-      } else {
-        to.add(from);
-      }
-    }
-    if (froms != null) {
-      if (allowCompoundPatterns) {
-        for (var x in froms) {
-          to.addAll(x.split(andSeparatorRE));
-        }
-      } else {
-        to.addAll(froms);
-      }
-    }
   }
 }

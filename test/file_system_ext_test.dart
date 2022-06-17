@@ -15,18 +15,21 @@ void main() {
     final sub2 = fsp.join(sub1, 'sub2');
 
     group('FileSystemExt - ${fs.styleName} -', () {
-      // Future setup() async {
-      //   await fs.directory(sub2).create(recursive: true);
+      setUp(() async {
+        await fs.directory(sub2).create(recursive: true);
 
-      //   await fs.file(fsp.join(top, 'file11.doc')).create();
-      //   await fs.file(fsp.join(top, 'file12.txt')).create();
+        await fs.file(fsp.join(top, 'file11.doc')).create();
+        await fs.file(fsp.join(top, 'file12.txt')).create();
+        await fs.file(fsp.join(top, 'file13.docx')).create();
 
-      //   await fs.file(fsp.join(sub1, 'file21.doc')).create();
-      //   await fs.file(fsp.join(sub1, 'file22.txt')).create();
+        await fs.file(fsp.join(sub1, 'file21.doc')).create();
+        await fs.file(fsp.join(sub1, 'file22.txt')).create();
+        await fs.file(fsp.join(sub1, 'file23.docx')).create();
 
-      //   await fs.file(fsp.join(sub2, 'file31.doc')).create();
-      //   await fs.file(fsp.join(sub2, 'file32.txt')).create();
-      // }
+        await fs.file(fsp.join(sub2, 'file31.doc')).create();
+        await fs.file(fsp.join(sub2, 'file32.txt')).create();
+        await fs.file(fsp.join(sub1, 'file33.docx')).create();
+      });
 
       test('getFullPath - empty', () {
         expect(fsp.equals(fs.getFullPath(''), fsp.current), true);
@@ -65,14 +68,22 @@ void main() {
         final full = fs.getFullPath(orig);
         expect(fsp.equals(full, orig), true);
       });
-      // test('list - top', () async {
-      //   await setup();
-      //   var flst = await fs.list(root: top, patterns: ['*.txt']);
-      //   expect(flst.length, 1);
-      // });
-      // test('listSync', () async {
-      //   await setup();
-      // });
+      test('list - top', () async {
+        var flst = await fs.list(root: top, patterns: [
+          FilePattern('*.doc*'),
+          FilePattern('*.tx*'),
+          FilePattern('*.docx', inverse: true),
+        ]);
+        expect(flst.length, 2);
+      });
+      test('listSync - top', () async {
+        var flst = fs.listSync(root: top, patterns: [
+          FilePattern('*.doc*'),
+          FilePattern('*.tx*'),
+          FilePattern('*.docx', inverse: true)
+        ]);
+        expect(flst.length, 2);
+      });
     });
   });
 }

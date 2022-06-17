@@ -16,10 +16,39 @@ typedef ParseArgsProc = void Function(String);
 Future printFileList(FileSystem fileSystem,
         {bool allowHidden = false,
         String? root,
-        List<String>? patterns,
+        List<FilePattern>? patterns,
         FileSystemEntityType? type,
-        bool followLinks = false}) async =>
+        bool followLinks = false,
+        bool negative = false}) async =>
     await fileSystem.list(
+        root: root,
+        patterns: patterns,
+        accumulate: false,
+        allowHidden: allowHidden,
+        followLinks: followLinks,
+        type: type,
+        listProcSync: (fileList, ea) {
+          print(fileSystem.path
+              .adjustTrailingSeparator(ea.path, ea.type, append: true));
+          return true;
+        },
+        errorProc: (fileList, ea) {
+          if (ea.path.isNotEmpty) {
+            printErr((ea.error ?? ea.exception).toString());
+          }
+          return true; // continue
+        });
+
+/// The actual usage
+///
+void printFileListSync(FileSystem fileSystem,
+        {bool allowHidden = false,
+        String? root,
+        List<FilePattern>? patterns,
+        FileSystemEntityType? type,
+        bool followLinks = false,
+        bool negative = false}) async =>
+    fileSystem.listSync(
         root: root,
         patterns: patterns,
         accumulate: false,
@@ -43,10 +72,14 @@ Future printFileList(FileSystem fileSystem,
 void main(List<String> args) async {
   var allowHidden = false;
   var followLinks = false;
+  var synchronous = false;
   final fs = LocalFileSystem();
+  var inverse = false;
   String? root;
-  final patterns = <String>[];
+  final patterns = <FilePattern>[];
   FileSystemEntityType? type;
+
+  print('\nArgs: $args\n');
 
   parseArgs(args, (opt) {
     // Parsing simple options
@@ -68,19 +101,38 @@ void main(List<String> args) async {
       case '--follow-links':
         followLinks = true;
         return;
+      case '-n':
+      case '--negative':
+        inverse = true;
+        return;
+      case '-s':
+      case '--sync':
+        synchronous = true;
+        return;
     }
   }, (arg) {
     // Parsing plain arguments
     //
-    patterns.add(arg);
+    patterns.add(FilePattern(arg, inverse: inverse));
   });
 
-  await printFileList(fs,
-      allowHidden: allowHidden,
-      root: root,
-      patterns: patterns,
-      type: type,
-      followLinks: followLinks);
+  if (synchronous) {
+    printFileListSync(fs,
+        allowHidden: allowHidden,
+        root: root,
+        patterns: patterns,
+        type: type,
+        followLinks: followLinks,
+        negative: inverse);
+  } else {
+    await printFileList(fs,
+        allowHidden: allowHidden,
+        root: root,
+        patterns: patterns,
+        type: type,
+        followLinks: followLinks,
+        negative: inverse);
+  }
 }
 
 /// A primitive command-line arguments parser (any other may be used instead)

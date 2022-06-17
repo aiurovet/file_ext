@@ -35,15 +35,15 @@ extension PathExt on p.Context {
 
   /// Check whether the file system is case-sensitive
   ///
-  bool get isCaseSensitive => (separator == altSeparator);
+  bool get caseSensitive => (separator == altSeparator);
 
   /// A pattern to locate glob patterns
   ///
-  static final isGlobPatternRE = RegExp(r'[\*\?\{\[]', caseSensitive: false);
+  static final globPatternRE = RegExp(r'[\*\?\{\[]', caseSensitive: false);
 
   /// A regexp to filter hidden files
   ///
-  static final RegExp isHiddenRE = RegExp(r'(^|[\/\\])\.[^\.\/\\]');
+  static final RegExp hiddenRE = RegExp(r'(^|[\/\\])\.[^\.\/\\]');
 
   /// A pattern to locate a combination of glob characters which means recursive directory scan
   ///
@@ -52,8 +52,7 @@ extension PathExt on p.Context {
 
   /// A pattern to locate regular expression patterns
   ///
-  static final isRegExpPatternRE =
-      RegExp(r'^\^|\$$|[\|\(]', caseSensitive: false);
+  static final _regExpPatternRE = RegExp(r'[(|$\^]', caseSensitive: false);
 
   /// Check whether the file system is POSIX-compliant
   ///
@@ -61,7 +60,7 @@ extension PathExt on p.Context {
 
   /// A variant of [separator] for regexp patterns
   ///
-  String get separatorEscaped => r'\' + separator;
+  String get separatorEscaped => '\\$separator';
 
   /// A short name of the current directory
   ///
@@ -125,19 +124,19 @@ extension PathExt on p.Context {
     return Glob(patternEx,
         context: this,
         recursive: isRecursiveGlobPattern(patternEx),
-        caseSensitive: isCaseSensitive);
+        caseSensitive: caseSensitive);
   }
 
   /// Check whether [pattern] contains spoecial glob pattern characters
   ///
   static bool isGlobPattern(String? pattern) =>
-      (pattern != null) && isGlobPatternRE.hasMatch(pattern);
+      (pattern != null) && globPatternRE.hasMatch(pattern);
 
   /// Check whether [aPath] represents a hidden file or directory:
   /// i.e. [aPath] contains a sub-dir or a filename starting with
   /// a dot
   ///
-  bool isHidden(String aPath) => isHiddenRE.hasMatch(aPath);
+  bool isHidden(String aPath) => hiddenRE.hasMatch(aPath);
 
   /// Return true if [aPath] contains a separator
   /// Under Windows, return true also if [aPath] contains
@@ -180,7 +179,7 @@ extension PathExt on p.Context {
   /// Check whether [pattern] contains spoecial glob pattern characters
   ///
   static bool isRegExpPattern(String? pattern) =>
-      (pattern != null) && isRegExpPatternRE.hasMatch(pattern);
+      (pattern != null) && _regExpPatternRE.hasMatch(pattern);
 
   /// Adjust [pattern] if needed, then split that into a non-glob root directory name and a glob sub-pattern:\
   /// `'/ab.ijk' => '/', 'ab.ijk'` (POSIX)\
@@ -190,18 +189,18 @@ extension PathExt on p.Context {
   /// `'ab\cd*/efgh/**.ijk' => '', 'ab\cd*/efgh/**.ijk'` (POSIX)\
   /// `'ab\cd\*/efgh\**.ijk' => 'ab', 'cd\*\efgh\**.ijk' (Windows)`
   ///
-  List<String> splitPattern(String? pattern, {bool isAdjusted = false}) {
+  List<String> splitPattern(String? pattern, {bool adjusted = false}) {
     if ((pattern == null) || pattern.isEmpty) {
       return ['', anyPattern];
     }
 
-    var patternEx = isAdjusted ? pattern : adjust(pattern);
+    var patternEx = adjusted ? pattern : adjust(pattern);
 
     if (!patternEx.contains(separator)) {
       return ['', patternEx];
     }
 
-    var globPos = isGlobPatternRE.firstMatch(patternEx)?.start ?? -1;
+    var globPos = globPatternRE.firstMatch(patternEx)?.start ?? -1;
     var subPattern =
         (globPos < 0 ? patternEx : patternEx.substring(0, globPos));
     var lastSepPos = subPattern.lastIndexOf(separator);

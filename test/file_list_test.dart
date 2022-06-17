@@ -1,8 +1,7 @@
 // Copyright (c) 2022, Alexander Iurovetski
 // All rights reserved under MIT license (see LICENSE file)
 
-import 'package:file_ext/src/file_list.dart';
-import 'package:file_ext/src/memory_ext.dart';
+import 'package:file_ext/file_ext.dart';
 import 'package:test/test.dart';
 
 /// A suite of tests for PathExt
@@ -23,44 +22,37 @@ void main() {
 
     final roots = <String>[];
 
-    final pat = <String>[
-      '$top1/*.doc',
-      '$sub22/**.{txt,lst} & -\\/file[13][12]'
+    final pat = <FilePattern>[
+      FilePattern('$top1/*.doc'),
+      FilePattern('$sub22/**.{txt,lst} and not \\/file[13][12]')
     ];
 
     FileList? fl;
 
+    setUp(() async {
+      await fs.directory(sub1).create(recursive: true);
+      await fs.directory(sub12).create(recursive: true);
+      await fs.directory(sub21).create(recursive: true);
+      await fs.directory(sub22).create(recursive: true);
+
+      await fs.file(fsp.join(top1, 'file01.doc')).create();
+      await fs.file(fsp.join(top2, 'file02.txt')).create();
+
+      await fs.file(fsp.join(sub1, 'file11.doc')).create();
+      await fs.file(fsp.join(sub12, 'file12.lst')).create();
+
+      await fs.file(fsp.join(sub21, 'file21.doc')).create();
+      await fs.file(fsp.join(sub22, 'file22.txt')).create();
+
+      fl = FileList(fs, roots: roots, patterns: pat);
+    });
+
     group('FileList - ${fs.styleName} -', () {
-      Future setup() async {
-        await fs.directory(sub1).create(recursive: true);
-        await fs.directory(sub12).create(recursive: true);
-        await fs.directory(sub21).create(recursive: true);
-        await fs.directory(sub22).create(recursive: true);
-
-        await fs.file(fsp.join(top1, 'file01.doc')).create();
-        await fs.file(fsp.join(top2, 'file02.txt')).create();
-
-        await fs.file(fsp.join(sub1, 'file11.doc')).create();
-        await fs.file(fsp.join(sub12, 'file12.lst')).create();
-
-        await fs.file(fsp.join(sub21, 'file21.doc')).create();
-        await fs.file(fsp.join(sub22, 'file22.txt')).create();
-
-        fl = FileList(fs, roots: roots, patterns: pat);
-      }
-
       test('constructor', () async {
-        await setup();
-        expect(fl?.roots.toString(), '[$top1,$sub22]');
-        expect(fl?.filters.length, 2);
-        expect(fl?.filters[0].root, '');
-        expect(fl?.filters[0].negative, false);
-        expect(fl?.filters[0].regexp, null);
-        expect(fl?.filters[1].root, '');
-        expect(fl?.filters[1].negative, true);
-        expect(fl?.filters[1].glob, null);
+        expect(fl?.roots.toString(), '[]');
+        expect(fl?.patterns.length, 2);
       });
-      test('fetch', () async {
+      test('fetch from a single pattern', () async {
         var files = await FileList(fs, pattern: pat[0]).fetch();
 
         expect(files.isNotEmpty, true);
