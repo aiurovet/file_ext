@@ -14,7 +14,7 @@ void main() {
     group('FileFilter - ${fs.styleName} -', () {
       test('empty', () {
         var ff = FileFilter(fs)..setPatternSync(FilePattern(''));
-        expect(ff.root, '');
+        expect(ff.dirName, '');
         expect(ff.pattern, '*');
         expect(ff.matchWholePath, false);
         expect(ff.inverse, false);
@@ -23,7 +23,7 @@ void main() {
       });
       test('root dir', () {
         var ff = FileFilter(fs)..setPatternSync(FilePattern('/'));
-        expect(ff.root, sep);
+        expect(ff.dirName, sep);
         expect(ff.pattern, '*');
         expect(ff.matchWholePath, false);
         expect(ff.inverse, false);
@@ -33,7 +33,7 @@ void main() {
       test('recursive', () {
         var ff = FileFilter(fs);
         ff.setPatternSync(FilePattern('a/bc/**.txt'));
-        expect(ff.root, 'a${sep}bc');
+        expect(ff.dirName, 'a${sep}bc');
         expect(ff.pattern, '**.txt');
         expect(ff.matchWholePath, false);
         expect(ff.inverse, false);
@@ -42,7 +42,7 @@ void main() {
       });
       test('recursive including directories', () {
         var ff = FileFilter(fs)..setPatternSync(FilePattern('a/b*c/**.txt'));
-        expect(ff.root, 'a');
+        expect(ff.dirName, 'a');
         expect(ff.pattern, 'b*c$sep**.txt');
         expect(ff.matchWholePath, true);
         expect(ff.inverse, false);
@@ -51,7 +51,7 @@ void main() {
       });
       test('regexp', () {
         var ff = FileFilter(fs)..setPatternSync(FilePattern('^([ab]|[yz])'));
-        expect(ff.root, '');
+        expect(ff.dirName, '');
         expect(ff.pattern, '^([ab]|[yz])');
         expect(ff.matchWholePath, false);
         expect(ff.inverse, false);
@@ -61,7 +61,7 @@ void main() {
       test('negative', () {
         var ff = FileFilter(fs)
           ..setPatternSync(FilePattern('/a/b/*.txt', inverse: true));
-        expect(ff.root, '${sep}a${sep}b');
+        expect(ff.dirName, '${sep}a${sep}b');
         expect(ff.pattern, '*.txt');
         expect(ff.matchWholePath, false);
         expect(ff.inverse, true);

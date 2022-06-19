@@ -47,7 +47,7 @@ class FileFilter {
 
   /// The top directory to start from (for glob patterns only)
   ///
-  String root = '';
+  String dirName = '';
 
   /// The constructor
   ///
@@ -62,12 +62,12 @@ class FileFilter {
   ///
   void _createGlob(bool? caseSensitive, bool isDirectory) {
     if (isDirectory) {
-      root = _pattern;
+      dirName = _pattern;
       _pattern = PathExt.anyPattern;
       _matchWholePath = false;
     } else {
       final parts = path.splitPattern(_pattern);
-      root = parts[0];
+      dirName = parts[0];
       _pattern = parts[1];
       _matchWholePath = _pattern.contains(path.separator);
     }
@@ -75,7 +75,7 @@ class FileFilter {
     _regexp = null;
     _glob = Glob(_pattern,
         context: path,
-        recursive: PathExt.isRecursiveGlobPattern(_pattern),
+        recursive: path.isRecursiveGlobPattern(_pattern),
         caseSensitive: caseSensitive ?? path.isPosix);
   }
 

@@ -2,6 +2,7 @@
 // All rights reserved under MIT license (see LICENSE file)
 
 import 'package:file/file.dart';
+import 'package:file_ext/file_ext.dart';
 
 /// FileList event details
 ///
@@ -18,6 +19,18 @@ class FileListEntityEventArgs {
   ///
   String path = '';
 
+  /// ./ or .\\ or empty
+  ///
+  String _shortCurDirName = '';
+
+  /// The length of _shortCurDirName
+  ///
+  int _shortCurDirNameLen = 0;
+
+  /// The file system
+  ///
+  final FileSystem? fileSystem;
+
   /// The source file system entity object
   ///
   FileSystemEntity? source;
@@ -33,7 +46,12 @@ class FileListEntityEventArgs {
 
   /// The constructor populating all properties
   ///
-  FileListEntityEventArgs();
+  FileListEntityEventArgs({this.fileSystem, bool canRemoveCurDirName = false}) {
+    if (canRemoveCurDirName && (fileSystem != null)) {
+      _shortCurDirName = PathExt.shortCurDirName + fileSystem!.path.separator;
+      _shortCurDirNameLen = _shortCurDirName.length;
+    }
+  }
 
   /// The deep copy
   ///
@@ -67,6 +85,10 @@ class FileListEntityEventArgs {
     this.stat = stat;
     type = stat.type;
     isLink = (listFollowsLinks ? false : (entity is Link));
+
+    if ((_shortCurDirNameLen > 0) && path.startsWith(_shortCurDirName)) {
+      path = path.substring(_shortCurDirNameLen);
+    }
   }
 
   /// Check whether a directory needs to be scanned by looking up

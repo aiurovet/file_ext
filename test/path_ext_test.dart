@@ -150,16 +150,16 @@ void main() {
         expect(PathExt.isGlobPattern('!abc.txt'), true);
       });
       test('is recursive - abc/def.txt', () {
-        expect(PathExt.isRecursiveGlobPattern('abc${sep}def.txt'), false);
+        expect(fsp.isRecursiveGlobPattern('abc${sep}def.txt'), false);
       });
       test('is recursive - **.txt', () {
-        expect(PathExt.isRecursiveGlobPattern('**.txt'), true);
+        expect(fsp.isRecursiveGlobPattern('**.txt'), true);
       });
       test('is recursive - abc/*.txt', () {
-        expect(PathExt.isRecursiveGlobPattern('abc$sep*.txt'), false);
+        expect(fsp.isRecursiveGlobPattern('abc$sep*.txt'), false);
       });
       test('is recursive - ab?c/*.txt', () {
-        expect(PathExt.isRecursiveGlobPattern('ab?c$sep*.txt'), true);
+        expect(fsp.isRecursiveGlobPattern('ab?c$sep*.txt'), true);
       });
     });
     group('PathExt - is hidden - ${fs.styleName} -', () {
@@ -175,14 +175,20 @@ void main() {
       test('.abc.txt', () {
         expect(fsp.isHidden('.abc.txt'), true);
       });
+      test('./abc.txt', () {
+        expect(fsp.isHidden('.${sep}abc.txt'), false);
+      });
+      test('./../abc.txt', () {
+        expect(fsp.isHidden('.$sep..${sep}abc.txt'), false);
+      });
       test('abc/def.txt', () {
-        expect(fsp.isHidden('abc/def.txt'), false);
+        expect(fsp.isHidden('abc${sep}def.txt'), false);
       });
       test('abc/.def.txt', () {
-        expect(fsp.isHidden('abc/.def.txt'), true);
+        expect(fsp.isHidden('abc$sep.def.txt'), true);
       });
       test('abc\\.def.txt', () {
-        expect(fsp.isHidden(r'abc\.def.txt'), true);
+        expect(fsp.isHidden(r'abc\.def.txt'), !fsp.isPosix);
       });
     });
     group('PathExt - is path/escaped - ${fs.styleName} -', () {
@@ -207,7 +213,7 @@ void main() {
       test('escaped - root', () {
         expect(fsp.isPathEscaped(sep), fsp.isPosix);
       });
-      test('escaped - anti-root', () {
+      test('escaped - alt-root', () {
         expect(fsp.isPathEscaped(sep == '/' ? '\\' : '/'), !fsp.isPosix);
       });
       test('escaped - contains drive', () {

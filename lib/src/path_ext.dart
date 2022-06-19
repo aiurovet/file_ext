@@ -14,7 +14,7 @@ extension PathExt on p.Context {
 
   /// A variant of [altSeparator] for regexp patterns
   ///
-  static const altSeparatorEscaped = altSeparator;
+  static final altSeparatorEscaped = RegExp.escape(altSeparator);
 
   /// A pattern to list any file system element
   ///
@@ -23,6 +23,10 @@ extension PathExt on p.Context {
   /// A variant of [anyPattern] to perform recursive scans
   ///
   static final anyPatternRecursive = r'**';
+
+  /// Check whether the file system is case-sensitive
+  ///
+  bool get caseSensitive => (separator == altSeparator);
 
   /// A separator between the drive name and the rest of the path
   /// (relevant to Windows only)
@@ -33,22 +37,27 @@ extension PathExt on p.Context {
   ///
   static final driveSeparatorEscaped = r':';
 
-  /// Check whether the file system is case-sensitive
-  ///
-  bool get caseSensitive => (separator == altSeparator);
-
   /// A pattern to locate glob patterns
   ///
   static final _globPatternRE = RegExp(r'[!\*\?\{\[]', caseSensitive: false);
 
-  /// A regexp to filter hidden files
+  /// A regexp to filter hidden files (POSIX)
   ///
-  static final RegExp _hiddenRE = RegExp(r'^\.|[/\\]\.');
+  static final RegExp _hiddenPosixRE = RegExp(r'^\.+([^\.\/]|$)|\/\.+[^\.\/]');
 
-  /// A pattern to locate a combination of glob characters which means recursive directory scan
+  /// A regexp to filter hidden files (Windows)
   ///
-  static final _isRecursiveGlobPatternRE =
-      RegExp(r'\*\*|[\*\?].*[/\\]', caseSensitive: false);
+  static final RegExp _hiddenWindowsRE = RegExp(r'^\.+([^\.\/\\]|$)|[\/\\]\.+[^\.\/\\]');
+
+  /// A pattern to locate a combination of glob characters which means recursive directory scan (POSIX)
+  ///
+  static final _isRecursiveGlobPatternPosixRE =
+      RegExp(r'\*\*|[\*\?].*\/', caseSensitive: false);
+
+  /// A pattern to locate a combination of glob characters which means recursive directory scan (Windows)
+  ///
+  static final _isRecursiveGlobPatternWindowsRE =
+      RegExp(r'\*\*|[\*\?].*[\/\\]', caseSensitive: false);
 
   /// A pattern to locate regular expression patterns
   ///
@@ -140,9 +149,11 @@ extension PathExt on p.Context {
 
   /// Check whether [aPath] represents a hidden file or directory:
   /// i.e. [aPath] contains a sub-dir or a filename starting with
-  /// a dot
+  /// a dot (on either POSIX or Windows)
   ///
-  bool isHidden(String aPath) => _hiddenRE.hasMatch(aPath);
+  bool isHidden(String aPath) => (isPosix
+      ? _hiddenPosixRE.hasMatch(aPath)
+      : _hiddenWindowsRE.hasMatch(aPath));
 
   /// Return true if [aPath] contains a separator
   /// Under Windows, return true also if [aPath] contains
@@ -179,8 +190,11 @@ extension PathExt on p.Context {
 
   /// Check whether [pattern] indicates recursive directory scan
   ///
-  static bool isRecursiveGlobPattern(String? pattern) =>
-      (pattern != null) && _isRecursiveGlobPatternRE.hasMatch(pattern);
+  bool isRecursiveGlobPattern(String? pattern) =>
+      (pattern != null) &&
+      (isPosix
+          ? _isRecursiveGlobPatternPosixRE.hasMatch(pattern)
+          : _isRecursiveGlobPatternWindowsRE.hasMatch(pattern));
 
   /// Check whether [pattern] contains spoecial glob pattern characters
   ///
