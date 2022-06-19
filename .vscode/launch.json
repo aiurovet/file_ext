@@ -5,7 +5,7 @@
   "version": "0.2.0",
   "configurations": [
     { "name": "All", "request": "launch", "type": "dart", "program": "example/file_ext_example.dart",
-      "args": [ "-s", "./*.yaml", "../parse_args/**.dart" ]},
+      "args": [ "-s", "." ]},
     { "name": "All + hidden", "request": "launch", "type": "dart", "program": "example/file_ext_example.dart",
       "args": [ "-a" ]},
     { "name": "All dirs & sub-dirs of abs", "request": "launch", "type": "dart", "program": "example/file_ext_example.dart",

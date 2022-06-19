@@ -68,7 +68,7 @@ class FileList {
 
   /// Should we scan sub-directories or not (as cumulative from filter patterns)
   ///
-  late final bool recursive;
+  var recursive = false;
 
   /// A list of patterns
   ///
@@ -125,7 +125,7 @@ class FileList {
   Future<List<String>> fetch() async {
     await setFilters();
 
-    var dirNames = <String>[];
+    final visitedDirNames = <String>[];
     var result = <String>[];
 
     // Accumulate filtered entities
@@ -135,17 +135,20 @@ class FileList {
         final subDirName = straightFilter.dirName;
         final subRoot = path.join(root, subDirName);
 
+        recursive = straightFilter.glob?.recursive ?? false;
         straightFilter.dirName = '';
 
-        if (root.isEmpty) {
-          dirNames = [subRoot];
+        visitedDirNames.clear();
+
+        if (subRoot.isEmpty) {
+          visitedDirNames.add(subRoot);
         } else {
-          dirNames = [
+          visitedDirNames.add(
             await fileSystem.directory(subRoot).resolveSymbolicLinks()
-          ];
+          );
         }
 
-        await _fetch(result, subRoot, straightFilter, dirNames);
+        await _fetch(result, subRoot, straightFilter, visitedDirNames);
 
         straightFilter.dirName = subDirName;
       }
@@ -159,7 +162,7 @@ class FileList {
   List<String> fetchSync() {
     setFiltersSync();
 
-    var dirNames = <String>[];
+    final visitedDirNames = <String>[];
     var result = <String>[];
 
     // Accumulate filtered entities
@@ -169,15 +172,18 @@ class FileList {
         final subDirName = straightFilter.dirName;
         final subRoot = path.join(root, subDirName);
 
+        recursive = straightFilter.glob?.recursive ?? false;
         straightFilter.dirName = '';
 
-        if (root.isEmpty) {
-          dirNames = [subRoot];
+        if (subRoot.isEmpty) {
+          visitedDirNames.add(subRoot);
         } else {
-          dirNames = [fileSystem.directory(subRoot).resolveSymbolicLinksSync()];
+          visitedDirNames.add(
+            fileSystem.directory(subRoot).resolveSymbolicLinksSync()
+          );
         }
 
-        _fetchSync(result, subRoot, straightFilter, dirNames);
+        _fetchSync(result, subRoot, straightFilter, visitedDirNames);
 
         straightFilter.dirName = subDirName;
       }
@@ -190,7 +196,7 @@ class FileList {
   /// path and name match specific straight filter as well as every inverse filter
   ///
   bool getMatchedPath(FileListEntityEventArgs entityArgs,
-      FileFilter straightFilter, List<String> dirNames) {
+      FileFilter straightFilter, List<String> visitedDirNames) {
     if ((!allowHidden && path.isHidden(entityArgs.path)) ||
         (types.isNotEmpty && !types.contains(entityArgs.stat?.type))) {
       return false;
@@ -215,8 +221,8 @@ class FileList {
   /// return true (async)
   ///
   Future<bool> getMatchedPathAndCallProc(FileListEntityEventArgs entityArgs,
-      FileFilter straightFilter, List<String> dirNames) async {
-    final isNewDir = await entityArgs.isNewDirectory(dirNames);
+      FileFilter straightFilter, List<String> visitedDirNames) async {
+    final isNewDir = await entityArgs.isNewDirectory(visitedDirNames);
 
     if (isNewDir != null) {
       if (!isNewDir) {
@@ -226,7 +232,7 @@ class FileList {
         return true;
       }
     }
-    if (!getMatchedPath(entityArgs, straightFilter, dirNames)) {
+    if (!getMatchedPath(entityArgs, straightFilter, visitedDirNames)) {
       return false;
     }
     if (entityArgs.isLink && followLinks) {
@@ -252,8 +258,8 @@ class FileList {
   /// and synchronous user-defined callback returns true (sync)
   ///
   bool getMatchedPathAndCallProcSync(FileListEntityEventArgs entityArgs,
-      FileFilter straightFilter, List<String> dirNames) {
-    final isNewDir = entityArgs.isNewDirectorySync(dirNames);
+      FileFilter straightFilter, List<String> visitedDirNames) {
+    final isNewDir = entityArgs.isNewDirectorySync(visitedDirNames);
 
     if (isNewDir != null) {
       if (!isNewDir) {
@@ -263,7 +269,7 @@ class FileList {
         return true;
       }
     }
-    if (!getMatchedPath(entityArgs, straightFilter, dirNames)) {
+    if (!getMatchedPath(entityArgs, straightFilter, visitedDirNames)) {
       return false;
     }
     if (entityArgs.isLink && followLinks) {
@@ -282,15 +288,9 @@ class FileList {
   /// Create filters from patterns and accumulate
   ///
   Future setFilters() async {
-    var recursive = false;
-
     for (final pattern in patterns) {
       var filter = FileFilter(fileSystem);
       await filter.setPattern(pattern);
-
-      if (filter.glob?.recursive ?? false) {
-        recursive = true;
-      }
 
       if (filter.inverse) {
         inverseFilters.add(filter);
@@ -298,24 +298,14 @@ class FileList {
         straightFilters.add(filter);
       }
     }
-
-    this.recursive = recursive;
-
-    _adjustRoots();
   }
 
   /// Create filters from patterns and accumulate
   ///
   void setFiltersSync() {
-    var recursive = false;
-
     for (final pattern in patterns) {
       var filter = FileFilter(fileSystem);
       filter.setPatternSync(pattern);
-
-      if (filter.glob?.recursive ?? false) {
-        recursive = true;
-      }
 
       if (filter.inverse) {
         inverseFilters.add(filter);
@@ -323,10 +313,6 @@ class FileList {
         straightFilters.add(filter);
       }
     }
-
-    this.recursive = recursive;
-
-    _adjustRoots();
   }
 
   /// Split every string pattern and add to the destination list
@@ -352,8 +338,13 @@ class FileList {
 
   /// Split every top directory name and accumulate
   ///
-  void _addRoots(String? root, List<String>? roots) =>
-      _addAll(this.roots, root, roots);
+  void _addRoots(String? root, List<String>? roots) {
+    _addAll(this.roots, root, roots);
+
+    if (this.roots.isEmpty) {
+      this.roots.add('');
+    }
+  }
 
   /// Accumulate all filtering types
   ///
@@ -367,39 +358,11 @@ class FileList {
     }
   }
 
-  /// For each root, merge it with the primary (first) filter root
-  ///
-  void _adjustRoots() {
-    if (roots.isEmpty) {
-      if (straightFilters.isEmpty) {
-        roots.add('');
-      } else {
-        roots.add(straightFilters[0].dirName);
-        straightFilters[0].dirName = '';
-      }
-      return;
-    }
-
-    var filter = straightFilters[0];
-
-    if (roots.isEmpty) {
-      roots.add(filter.dirName);
-      straightFilters[0].dirName = '';
-      return;
-    }
-
-    for (var i = 0, n = roots.length; i < n; i++) {
-      filter = straightFilters[i];
-      roots[i] = path.join(roots[i], filter.dirName);
-      filter.dirName = '';
-    }
-  }
-
   /// The essential part of `exec(...)`: does everything after the [options]
   /// object created and the next root taken
   ///
   Future<List<String>> _fetch(List<String> result, String root,
-      FileFilter straightFilter, List<String> dirNames) async {
+      FileFilter straightFilter, List<String> visitedDirNames) async {
     final List<FileSystemEntity> entities;
 
     // Retrieve all entites in this directory and don't catch any exception here
@@ -435,7 +398,7 @@ class FileList {
         await entityArgs.fetch(entity, followLinks);
 
         if (await getMatchedPathAndCallProc(
-            entityArgs, straightFilter, dirNames)) {
+            entityArgs, straightFilter, visitedDirNames)) {
           paths.add(entityArgs.path);
           entityTypes.add(entityArgs.type);
         }
@@ -465,7 +428,7 @@ class FileList {
         final path = paths[i];
 
         if (entityTypes[i] == FileSystemEntityType.directory) {
-          await _fetch(result, path, straightFilter, dirNames);
+          await _fetch(result, path, straightFilter, visitedDirNames);
         }
       }
     }
@@ -480,7 +443,7 @@ class FileList {
   /// which does require the [options] re-creation
   ///
   List<String> _fetchSync(List<String> result, String root,
-      FileFilter straightFilter, List<String> dirNames) {
+      FileFilter straightFilter, List<String> visitedDirNames) {
     final List<FileSystemEntity> entities;
 
     // Retrieve all entites in this directory and don't catch any exception here
@@ -514,7 +477,7 @@ class FileList {
         entityArgs.fetchSync(entity, followLinks);
 
         if (getMatchedPathAndCallProcSync(
-            entityArgs, straightFilter, dirNames)) {
+            entityArgs, straightFilter, visitedDirNames)) {
           paths.add(path.adjustTrailingSeparator(
               entityArgs.path, entityArgs.type,
               append: true));
@@ -547,7 +510,7 @@ class FileList {
         final path = paths[i];
 
         if (path.endsWith(sep)) {
-          _fetchSync(result, path, straightFilter, dirNames);
+          _fetchSync(result, path, straightFilter, visitedDirNames);
         }
       }
     }
