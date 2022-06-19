@@ -15,16 +15,22 @@ extension FileSystemExt on FileSystem {
   /// and resolves . and ..
   ///
   String getFullPath(String? aPath) {
-    // If path is null or empty, return the current directory
+    // If path is null, return the current directory
     //
-    if ((aPath == null) || aPath.isEmpty) {
-      path.current;
+    if (aPath == null) {
+      return path.current;
+    }
+
+    // If path is empty, return the current directory
+    //
+    if (aPath.isEmpty) {
+      return path.current;
     }
 
     // Posix is always 'in chocolate'
     //
     if (path.isPosix) {
-      return path.canonicalize(aPath!);
+      return path.canonicalize(aPath);
     }
 
     // Get absolute path
@@ -32,7 +38,7 @@ extension FileSystemExt on FileSystem {
     final separator = path.separator;
     var absPath = file(path.adjust(aPath)).absolute.path;
 
-    // If no drive is present, thenm take it from the current directory
+    // If no drive is present, then take it from the current directory
     //
     if (absPath.startsWith(separator)) {
       final curDirName = path.current;

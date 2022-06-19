@@ -5,16 +5,16 @@
   "version": "0.2.0",
   "configurations": [
     { "name": "All", "request": "launch", "type": "dart", "program": "example/file_ext_example.dart",
-      "args": [ ]},
+      "args": [ "-s", "." ]},
     { "name": "All + hidden", "request": "launch", "type": "dart", "program": "example/file_ext_example.dart",
-      "args": [ "-a" ]},
+      "args": [ "-s", "-a" ]},
     { "name": "All dirs & sub-dirs of parent", "request": "launch", "type": "dart", "program": "example/file_ext_example.dart",
-      "args": [ "/bin/X11/**" ]},
+      "args": [ "-s", "/bin/X11/**" ]},
     { "name": "All files except docos", "request": "launch", "type": "dart", "program": "example/file_ext_example.dart",
-      "args": [ "-f", "-n", "*.{md,yml,yaml}" ]},
+      "args": [ "-s", "-f", "-n", "*.{md,yml,yaml}" ]},
     { "name": "Dart (recursive)", "request": "launch", "type": "dart", "program": "example/file_ext_example.dart",
-      "args": [ "-f", "**.dart" ]},
+      "args": [ "-s", "-f", "**.dart" ]},
     { "name": "Dart or Yaml (recursive)", "request": "launch", "type": "dart", "program": "example/file_ext_example.dart",
-      "args": [ "-f", "**.{dart,yaml}" ]}
+      "args": [ "-s", "-f", "**.{dart,yaml}" ]}
   ]
 }

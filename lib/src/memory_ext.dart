@@ -26,6 +26,14 @@ extension MemoryFileSystemExt on MemoryFileSystem {
 
   /// Short name
   ///
-  String get styleName =>
-      (style == FileSystemStyle.posix ? 'POSIX' : 'Windows');
+  String get styleName {
+    switch (style) {
+      case FileSystemStyle.posix:
+        return 'POSIX';
+      case FileSystemStyle.windows:
+        return 'Windows';
+      default:
+        return '';
+    }
+  }
 }

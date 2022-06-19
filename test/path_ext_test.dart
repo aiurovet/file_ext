@@ -39,44 +39,83 @@ void main() {
     });
     group('PathExt - adjustTrailingSeparator - ${fs.styleName} -', () {
       test('dir - empty - add', () {
-        expect(fsp.adjustTrailingSeparator('', FileSystemEntityType.directory, append: true), r'');
+        expect(
+            fsp.adjustTrailingSeparator('', FileSystemEntityType.directory,
+                append: true),
+            r'');
       });
       test('dir - empty - remove', () {
-        expect(fsp.adjustTrailingSeparator('', FileSystemEntityType.directory, append: true), r'');
+        expect(
+            fsp.adjustTrailingSeparator('', FileSystemEntityType.directory,
+                append: true),
+            r'');
       });
       test('dir - root - add', () {
-        expect(fsp.adjustTrailingSeparator(sep, FileSystemEntityType.directory, append: true), sep);
+        expect(
+            fsp.adjustTrailingSeparator(sep, FileSystemEntityType.directory,
+                append: true),
+            sep);
       });
       test('dir - root - remove', () {
-        expect(fsp.adjustTrailingSeparator(sep, FileSystemEntityType.directory, append: true), sep);
+        expect(
+            fsp.adjustTrailingSeparator(sep, FileSystemEntityType.directory,
+                append: true),
+            sep);
       });
       test('dir - drive (win) - add', () {
         if (fs.style == FileSystemStyle.windows) {
-          expect(fsp.adjustTrailingSeparator(r'c:', FileSystemEntityType.directory, append: true), r'c:.\');
+          expect(
+              fsp.adjustTrailingSeparator(r'c:', FileSystemEntityType.directory,
+                  append: true),
+              r'c:.\');
         }
       });
       test('dir - drive (win) - remove', () {
         if (fs.style == FileSystemStyle.windows) {
-          expect(fsp.adjustTrailingSeparator(r'c:', FileSystemEntityType.directory, append: false), r'c:');
+          expect(
+              fsp.adjustTrailingSeparator(r'c:', FileSystemEntityType.directory,
+                  append: false),
+              r'c:');
         }
       });
       test('dir - abc - add', () {
-        expect(fsp.adjustTrailingSeparator('abc', FileSystemEntityType.directory, append: true), r'abc' + sep);
+        expect(
+            fsp.adjustTrailingSeparator('abc', FileSystemEntityType.directory,
+                append: true),
+            r'abc' + sep);
       });
       test('dir - abc - remove', () {
-        expect(fsp.adjustTrailingSeparator('abc' + sep, FileSystemEntityType.directory, append: false), r'abc');
+        expect(
+            fsp.adjustTrailingSeparator(
+                'abc' + sep, FileSystemEntityType.directory,
+                append: false),
+            r'abc');
       });
       test('dir - ab/c - add', () {
-        expect(fsp.adjustTrailingSeparator('ab' + sep + 'c', FileSystemEntityType.directory, append: true), r'ab' + sep + 'c' + sep);
+        expect(
+            fsp.adjustTrailingSeparator(
+                'ab' + sep + 'c', FileSystemEntityType.directory,
+                append: true),
+            r'ab' + sep + 'c' + sep);
       });
       test('dir - ab/c - remove', () {
-        expect(fsp.adjustTrailingSeparator('ab' + sep + 'c', FileSystemEntityType.directory, append: false), r'ab' + sep + 'c');
+        expect(
+            fsp.adjustTrailingSeparator(
+                'ab' + sep + 'c', FileSystemEntityType.directory,
+                append: false),
+            r'ab' + sep + 'c');
       });
       test('file - add', () {
-        expect(fsp.adjustTrailingSeparator(r'abc', FileSystemEntityType.file, append: true), r'abc');
+        expect(
+            fsp.adjustTrailingSeparator(r'abc', FileSystemEntityType.file,
+                append: true),
+            r'abc');
       });
       test('file - remove', () {
-        expect(fsp.adjustTrailingSeparator(r'abc' + sep, FileSystemEntityType.file, append: false), r'abc' + sep);
+        expect(
+            fsp.adjustTrailingSeparator(r'abc' + sep, FileSystemEntityType.file,
+                append: false),
+            r'abc' + sep);
       });
     });
     group('PathExt - glob - ${fs.styleName} -', () {
@@ -228,17 +267,20 @@ void main() {
         expect(fsp.splitPattern('abc${sep}def'), ['abc', 'def']);
       });
       test('/ab/cd/efgh.ijk', () {
-        expect(fsp.splitPattern('${sep}ab${sep}cd${sep}efgh.ijk'), ['${sep}ab${sep}cd', 'efgh.ijk']);
+        expect(fsp.splitPattern('${sep}ab${sep}cd${sep}efgh.ijk'),
+            ['${sep}ab${sep}cd', 'efgh.ijk']);
       });
       test('ab/cd*/efgh/**.ijk', () {
-        expect(fsp.splitPattern('ab${sep}cd*${sep}efgh$sep**.ijk'), ['ab', 'cd*${sep}efgh$sep**.ijk']);
+        expect(fsp.splitPattern('ab${sep}cd*${sep}efgh$sep**.ijk'),
+            ['ab', 'cd*${sep}efgh$sep**.ijk']);
       });
       test('ab <backslash> cd*/efgh/**.ijk', () {
         if (fsp.isPosix) {
-          expect(fsp.splitPattern('ab\\cd*${sep}efgh$sep**.ijk'), ['', 'ab\\cd*${sep}efgh$sep**.ijk']);
-        }
-        else {
-          expect(fsp.splitPattern('ab\\cd*${sep}efgh$sep**.ijk'), ['ab', 'cd*${sep}efgh$sep**.ijk']);
+          expect(fsp.splitPattern('ab\\cd*${sep}efgh$sep**.ijk'),
+              ['', 'ab\\cd*${sep}efgh$sep**.ijk']);
+        } else {
+          expect(fsp.splitPattern('ab\\cd*${sep}efgh$sep**.ijk'),
+              ['ab', 'cd*${sep}efgh$sep**.ijk']);
         }
       });
     });
@@ -253,7 +295,8 @@ void main() {
         expect(fsp.toPosix('abc.def'), 'abc.def');
       });
       test('general', () {
-        expect(fsp.toPosix(r'a\b/c.def'), 'a' + (fsp.isPosix ? r'\' : '/') + 'b/c.def');
+        expect(fsp.toPosix(r'a\b/c.def'),
+            'a' + (fsp.isPosix ? r'\' : '/') + 'b/c.def');
       });
     });
     group('PathExt - toPosixEscaped - ${fs.styleName} -', () {
@@ -270,7 +313,8 @@ void main() {
         expect(fsp.toPosixEscaped(r'a\b/c.def'), r'a\b/c.def');
       });
       test('general escaped', () {
-        expect(fsp.toPosixEscaped(r'a\\b/c.def'), (fsp.isPosix ? r'a\\b/c.def' : r'a/b/c.def'));
+        expect(fsp.toPosixEscaped(r'a\\b/c.def'),
+            (fsp.isPosix ? r'a\\b/c.def' : r'a/b/c.def'));
       });
     });
   });
