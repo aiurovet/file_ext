@@ -2,7 +2,6 @@
 // All rights reserved under MIT license (see LICENSE file)
 
 import 'package:file/file.dart';
-import 'package:file/local.dart';
 import 'package:file_ext/file_ext.dart';
 import 'package:glob/glob.dart';
 import 'package:path/path.dart' as p;
@@ -10,6 +9,11 @@ import 'package:path/path.dart' as p;
 /// A supplementary class for `list(...)` and `listSync(...)` of `FileSystemExt`
 ///
 class FileFilter {
+  /// Filter matching any filename or path
+  ///
+  static FileFilter any(FileSystem fileSystem) =>
+      FileFilter(fileSystem)..setPattern(FilePattern.any);
+
   /// The filesystem object
   ///
   late final FileSystem fileSystem;
@@ -32,8 +36,8 @@ class FileFilter {
   /// A flag indicating the pattern is meant for checking
   /// a string does not match the glob
   ///
-  bool get inverse => _inverse;
-  var _inverse = false;
+  bool get negative => _negative;
+  var _negative = false;
 
   /// The original pattern
   ///
@@ -42,8 +46,8 @@ class FileFilter {
 
   /// The regular expression object
   ///
-  RegExp? get regexp => _regexp;
-  RegExp? _regexp;
+  RegExp? get regExp => _regExp;
+  RegExp? _regExp;
 
   /// The top directory to start from (for glob patterns only)
   ///
@@ -52,7 +56,7 @@ class FileFilter {
   /// The constructor
   ///
   FileFilter(FileSystem? fileSystem) {
-    this.fileSystem = fileSystem ?? LocalFileSystem();
+    this.fileSystem = fileSystem ?? FileSystemExt.local;
     path = this.fileSystem.path;
   }
 
@@ -60,7 +64,7 @@ class FileFilter {
   /// at this point, the pattern is guaranteed to be without the negation
   /// prefix
   ///
-  void _createGlob(bool? caseSensitive, bool isDirectory) {
+  void _createGlob(FilePattern pattern, bool isDirectory) {
     if (isDirectory) {
       dirName = _pattern;
       _pattern = PathExt.anyPattern;
@@ -72,40 +76,43 @@ class FileFilter {
       _matchWholePath = _pattern.contains(path.separator);
     }
 
-    _regexp = null;
+    _regExp = null;
     _glob = Glob(_pattern,
         context: path,
-        recursive: path.isRecursiveGlobPattern(_pattern),
-        caseSensitive: caseSensitive ?? path.isPosix);
+        recursive: path.isRecursivePattern(_pattern),
+        caseSensitive: pattern.caseSensitive ?? path.isPosix);
   }
 
   /// Get the actual regexp object for the filesystem entities filtering
   ///
-  void _createRegExp(bool? caseSensitive) {
+  void _createRegExp(FilePattern pattern) {
     _pattern = path.adjustEscaped(_pattern);
     _matchWholePath = _pattern.contains(path.separatorEscaped);
     _glob = null;
-    _regexp = RegExp(_pattern, caseSensitive: caseSensitive ?? path.isPosix);
+    _regExp = RegExp(_pattern,
+        caseSensitive: pattern.caseSensitive ?? path.isPosix,
+        unicode: pattern.unicode);
   }
 
   /// Check the [path] matches the straight pattern (without the leading negation
-  /// characters) and return the opposite if [_inverse] match is required
+  /// characters) and return the opposite if [_negative] match is required
   ///
   bool matches(String path, String baseName) {
     var text = (_matchWholePath ? path : baseName);
-    return (_glob?.matches(text) ?? _regexp?.hasMatch(text) ?? true) ^ _inverse;
+    return (_glob?.matches(text) ?? _regExp?.hasMatch(text) ?? true) ^
+        _negative;
   }
 
   /// The method to set pattern (async)
   ///
   void _setPattern(FilePattern pattern, bool isDirectory) {
-    _inverse = pattern.inverse;
+    _negative = pattern.negative;
     _pattern = path.adjust(pattern.string);
 
-    if (pattern.regular) {
-      _createRegExp(pattern.caseSensitive);
+    if (pattern.regular && !isDirectory) {
+      _createRegExp(pattern);
     } else {
-      _createGlob(pattern.caseSensitive, isDirectory);
+      _createGlob(pattern, isDirectory);
     }
   }
 

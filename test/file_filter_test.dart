@@ -17,18 +17,18 @@ void main() {
         expect(ff.dirName, '');
         expect(ff.pattern, '*');
         expect(ff.matchWholePath, false);
-        expect(ff.inverse, false);
+        expect(ff.negative, false);
         expect(ff.glob?.recursive, false);
-        expect(ff.regexp, null);
+        expect(ff.regExp, null);
       });
       test('root dir', () {
         var ff = FileFilter(fs)..setPatternSync(FilePattern('/'));
         expect(ff.dirName, sep);
         expect(ff.pattern, '*');
         expect(ff.matchWholePath, false);
-        expect(ff.inverse, false);
+        expect(ff.negative, false);
         expect(ff.glob?.recursive, false);
-        expect(ff.regexp, null);
+        expect(ff.regExp, null);
       });
       test('recursive', () {
         var ff = FileFilter(fs);
@@ -36,37 +36,37 @@ void main() {
         expect(ff.dirName, 'a${sep}bc');
         expect(ff.pattern, '**.txt');
         expect(ff.matchWholePath, false);
-        expect(ff.inverse, false);
+        expect(ff.negative, false);
         expect(ff.glob?.recursive, true);
-        expect(ff.regexp, null);
+        expect(ff.regExp, null);
       });
       test('recursive including directories', () {
         var ff = FileFilter(fs)..setPatternSync(FilePattern('a/b*c/**.txt'));
         expect(ff.dirName, 'a');
         expect(ff.pattern, 'b*c$sep**.txt');
         expect(ff.matchWholePath, true);
-        expect(ff.inverse, false);
+        expect(ff.negative, false);
         expect(ff.glob?.recursive, true);
-        expect(ff.regexp, null);
+        expect(ff.regExp, null);
       });
       test('regexp', () {
         var ff = FileFilter(fs)..setPatternSync(FilePattern('^([ab]|[yz])'));
         expect(ff.dirName, '');
         expect(ff.pattern, '^([ab]|[yz])');
         expect(ff.matchWholePath, false);
-        expect(ff.inverse, false);
+        expect(ff.negative, false);
         expect(ff.glob, null);
-        expect(ff.regexp?.pattern, ff.pattern);
+        expect(ff.regExp?.pattern, ff.pattern);
       });
       test('negative', () {
         var ff = FileFilter(fs)
-          ..setPatternSync(FilePattern('/a/b/*.txt', inverse: true));
+          ..setPatternSync(FilePattern('/a/b/*.txt', negative: true));
         expect(ff.dirName, '${sep}a${sep}b');
         expect(ff.pattern, '*.txt');
         expect(ff.matchWholePath, false);
-        expect(ff.inverse, true);
+        expect(ff.negative, true);
         expect(ff.glob?.pattern, '*.txt');
-        expect(ff.regexp, null);
+        expect(ff.regExp, null);
       });
     });
   });

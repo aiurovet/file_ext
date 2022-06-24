@@ -72,7 +72,7 @@ void main() {
         var flst = await fs.list(root: top, patterns: [
           FilePattern('*.doc*'),
           FilePattern('*.tx*'),
-          FilePattern('*.docx', inverse: true),
+          FilePattern('*.docx', negative: true),
         ]);
         expect(flst.length, 2);
       });
@@ -80,7 +80,7 @@ void main() {
         var flst = fs.listSync(root: top, patterns: [
           FilePattern('*.doc*'),
           FilePattern('*.tx*'),
-          FilePattern('*.docx', inverse: true)
+          FilePattern('*.docx', negative: true)
         ]);
         expect(flst.length, 2);
       });

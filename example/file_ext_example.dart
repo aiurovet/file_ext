@@ -74,7 +74,7 @@ void main(List<String> args) async {
   var followLinks = false;
   var synchronous = false;
   final fs = LocalFileSystem();
-  var inverse = false;
+  var negative = false;
   String? root;
   final patterns = <FilePattern>[];
   FileSystemEntityType? type;
@@ -103,7 +103,7 @@ void main(List<String> args) async {
         return;
       case '-n':
       case '--negative':
-        inverse = true;
+        negative = true;
         return;
       case '-s':
       case '--sync':
@@ -113,7 +113,7 @@ void main(List<String> args) async {
   }, (arg) {
     // Parsing plain arguments
     //
-    patterns.add(FilePattern(arg, inverse: inverse));
+    patterns.add(FilePattern(arg, negative: negative));
   });
 
   if (synchronous) {
@@ -123,7 +123,7 @@ void main(List<String> args) async {
         patterns: patterns,
         type: type,
         followLinks: followLinks,
-        negative: inverse);
+        negative: negative);
   } else {
     await printFileList(fs,
         allowHidden: allowHidden,
@@ -131,7 +131,7 @@ void main(List<String> args) async {
         patterns: patterns,
         type: type,
         followLinks: followLinks,
-        negative: inverse);
+        negative: negative);
   }
 }
 

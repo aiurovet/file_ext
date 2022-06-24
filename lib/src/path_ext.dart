@@ -22,7 +22,7 @@ extension PathExt on p.Context {
 
   /// A variant of [anyPattern] to perform recursive scans
   ///
-  static final anyPatternRecursive = r'**';
+  static final anyPatternRecursive = '$anyPattern$anyPattern';
 
   /// Check whether the file system is case-sensitive
   ///
@@ -47,21 +47,8 @@ extension PathExt on p.Context {
 
   /// A regexp to filter hidden files (Windows)
   ///
-  static final RegExp _hiddenWindowsRE = RegExp(r'^\.+([^\.\/\\]|$)|[\/\\]\.+[^\.\/\\]');
-
-  /// A pattern to locate a combination of glob characters which means recursive directory scan (POSIX)
-  ///
-  static final _isRecursiveGlobPatternPosixRE =
-      RegExp(r'\*\*|[\*\?].*\/', caseSensitive: false);
-
-  /// A pattern to locate a combination of glob characters which means recursive directory scan (Windows)
-  ///
-  static final _isRecursiveGlobPatternWindowsRE =
-      RegExp(r'\*\*|[\*\?].*[\/\\]', caseSensitive: false);
-
-  /// A pattern to locate regular expression patterns
-  ///
-  static final _regExpPatternRE = RegExp(r'[(|$\^]', caseSensitive: false);
+  static final RegExp _hiddenWindowsRE =
+      RegExp(r'^\.+([^\.\/\\]|$)|[\/\\]\.+[^\.\/\\]');
 
   /// Check whether the file system is POSIX-compliant
   ///
@@ -138,7 +125,7 @@ extension PathExt on p.Context {
 
     return Glob(patternEx,
         context: this,
-        recursive: isRecursiveGlobPattern(patternEx),
+        recursive: isRecursivePattern(patternEx),
         caseSensitive: caseSensitive);
   }
 
@@ -190,16 +177,8 @@ extension PathExt on p.Context {
 
   /// Check whether [pattern] indicates recursive directory scan
   ///
-  bool isRecursiveGlobPattern(String? pattern) =>
-      (pattern != null) &&
-      (isPosix
-          ? _isRecursiveGlobPatternPosixRE.hasMatch(pattern)
-          : _isRecursiveGlobPatternWindowsRE.hasMatch(pattern));
-
-  /// Check whether [pattern] contains spoecial glob pattern characters
-  ///
-  static bool isRegExpPattern(String? pattern) =>
-      (pattern != null) && _regExpPatternRE.hasMatch(pattern);
+  bool isRecursivePattern(String? pattern) =>
+      (pattern != null) && pattern.contains(anyPatternRecursive);
 
   /// Adjust [pattern] if needed, then split that into a non-glob root directory name and a glob sub-pattern:\
   /// `'/ab.ijk' => '/', 'ab.ijk'` (POSIX)\

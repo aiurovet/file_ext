@@ -12,7 +12,7 @@ class FilePattern {
 
   /// An opposite match
   ///
-  final bool inverse;
+  final bool negative;
 
   /// Treat pattern as a regular expression pattern (true),
   /// glob pattern (false) or guess (null)
@@ -21,21 +21,44 @@ class FilePattern {
 
   /// Actual pattern as string
   ///
-  String string = '';
+  final String string;
 
-  /// Default constructor
+  /// Pattern contains wide characters
   ///
-  FilePattern(this.string,
-      {this.caseSensitive, this.inverse = false, bool? regular}) {
-    if (regular == null) {
-      this.regular = PathExt.isRegExpPattern(string);
-    } else {
-      this.regular = regular;
-    }
-  }
+  late final bool unicode;
 
   /// FilePattern for 'any file or path matches'
   ///
   static final FilePattern any =
       FilePattern(PathExt.anyPattern, caseSensitive: false, regular: false);
+
+  /// Default constructor
+  ///
+  FilePattern(this.string,
+      {this.caseSensitive, this.negative = false, this.regular = false}) {
+    _setUnicodeFlag();
+  }
+
+  /// Default constructor
+  ///
+  void _setUnicodeFlag() {
+    if (regular && string.contains(r'\p{')) {
+      unicode = true;
+      return;
+    }
+
+    final runes = string.runes;
+    final length = runes.length;
+
+    for (var i = 0;; i++) {
+      if (i >= length) {
+        unicode = false;
+        return;
+      }
+      if (runes.elementAt(i) > 0xFFFF) {
+        unicode = true;
+        return;
+      }
+    }
+  }
 }

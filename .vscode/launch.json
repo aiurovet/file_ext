@@ -4,6 +4,8 @@
   // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
   "version": "0.2.0",
   "configurations": [
+    { "name": "Ad-hoc", "request": "launch", "type": "dart", "program": "example/file_ext_example.dart",
+      "args": [ "-s", "/usr/li*/**" ]},
     { "name": "All", "request": "launch", "type": "dart", "program": "example/file_ext_example.dart",
       "args": [ "-s", "." ]},
     { "name": "All + hidden", "request": "launch", "type": "dart", "program": "example/file_ext_example.dart",

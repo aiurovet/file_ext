@@ -150,16 +150,16 @@ void main() {
         expect(PathExt.isGlobPattern('!abc.txt'), true);
       });
       test('is recursive - abc/def.txt', () {
-        expect(fsp.isRecursiveGlobPattern('abc${sep}def.txt'), false);
+        expect(fsp.isRecursivePattern('abc${sep}def.txt'), false);
       });
       test('is recursive - **.txt', () {
-        expect(fsp.isRecursiveGlobPattern('**.txt'), true);
+        expect(fsp.isRecursivePattern('**.txt'), true);
       });
       test('is recursive - abc/*.txt', () {
-        expect(fsp.isRecursiveGlobPattern('abc$sep*.txt'), false);
+        expect(fsp.isRecursivePattern('abc$sep*.txt'), false);
       });
       test('is recursive - ab?c/*.txt', () {
-        expect(fsp.isRecursiveGlobPattern('ab?c$sep*.txt'), true);
+        expect(fsp.isRecursivePattern('ab?c$sep*.txt'), true);
       });
     });
     group('PathExt - is hidden - ${fs.styleName} -', () {
@@ -218,35 +218,6 @@ void main() {
       });
       test('escaped - contains drive', () {
         expect(fsp.isPathEscaped('c:'), !fsp.isPosix);
-      });
-    });
-    group('PathExt - is reg exp - ${fs.styleName} -', () {
-      test('null', () {
-        expect(PathExt.isRegExpPattern(null), false);
-      });
-      test('empty', () {
-        expect(PathExt.isRegExpPattern(''), false);
-      });
-      test('has .*', () {
-        expect(PathExt.isRegExpPattern('.*'), false);
-      });
-      test('has {}', () {
-        expect(PathExt.isRegExpPattern('abc.{doc,txt}'), false);
-      });
-      test('has []', () {
-        expect(PathExt.isRegExpPattern('[ab]c.txt'), false);
-      });
-      test('has ()', () {
-        expect(PathExt.isRegExpPattern('(abc).txt'), true);
-      });
-      test('has |', () {
-        expect(PathExt.isRegExpPattern('abc.txt|*.doc'), true);
-      });
-      test('has ^', () {
-        expect(PathExt.isRegExpPattern('^abc.txt'), true);
-      });
-      test('has dollar sign', () {
-        expect(PathExt.isRegExpPattern(r'abc.txt$'), true);
       });
     });
     group('PathExt - splitPattern - ${fs.styleName} -', () {

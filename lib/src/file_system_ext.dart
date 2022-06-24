@@ -2,11 +2,16 @@
 // All rights reserved under MIT license (see LICENSE file)
 
 import 'package:file/file.dart';
+import 'package:file/local.dart';
 import 'package:file_ext/file_ext.dart';
 
 /// A helper extension for the FileSystem API
 ///
 extension FileSystemExt on FileSystem {
+  /// Const: local filesystem object
+  ///
+  static final local = LocalFileSystem();
+
   /// Convert [aPath] to the fully qualified path\
   /// \
   /// For POSIX, it calls `canonicalize()`\

@@ -42,10 +42,15 @@ class FileList {
   ///
   final List<FileFilter> straightFilters = [];
 
-  /// A list of inverse filters created based on the list of FilePatterns\
+  /// A list of negative filters created based on the list of FilePatterns\
   /// Gets populated on `fetch()` or `fetchSync()` call
   ///
-  final List<FileFilter> inverseFilters = [];
+  final List<FileFilter> negativeFilters = [];
+
+  /// A list of regexp filters created based on the list of FilePatterns\
+  /// Gets populated on `fetch()` or `fetchSync()` call
+  ///
+  final List<FileFilter> regExpFilters = [];
 
   /// Asynchronous (non-blocking) FileList handler
   /// good for I/O manipulations
@@ -143,9 +148,8 @@ class FileList {
         if (subRoot.isEmpty) {
           visitedDirNames.add(subRoot);
         } else {
-          visitedDirNames.add(
-            await fileSystem.directory(subRoot).resolveSymbolicLinks()
-          );
+          visitedDirNames
+              .add(await fileSystem.directory(subRoot).resolveSymbolicLinks());
         }
 
         await _fetch(result, subRoot, straightFilter, visitedDirNames);
@@ -178,9 +182,8 @@ class FileList {
         if (subRoot.isEmpty) {
           visitedDirNames.add(subRoot);
         } else {
-          visitedDirNames.add(
-            fileSystem.directory(subRoot).resolveSymbolicLinksSync()
-          );
+          visitedDirNames
+              .add(fileSystem.directory(subRoot).resolveSymbolicLinksSync());
         }
 
         _fetchSync(result, subRoot, straightFilter, visitedDirNames);
@@ -193,7 +196,8 @@ class FileList {
   }
 
   /// Returns true if the given path passes `isHidden(...)` test, and\
-  /// path and name match specific straight filter as well as every inverse filter
+  /// path and name match specific straight filter as well as every
+  /// negative and regexp filter
   ///
   bool getMatchedPath(FileListEntityEventArgs entityArgs,
       FileFilter straightFilter, List<String> visitedDirNames) {
@@ -202,12 +206,20 @@ class FileList {
       return false;
     }
 
+    if (entityArgs.type == FileSystemEntityType.directory) {}
+
     if (!straightFilter.matches(entityArgs.path, entityArgs.baseName)) {
       return false;
     }
 
-    for (final inverseFilter in inverseFilters) {
-      if (!inverseFilter.matches(entityArgs.path, entityArgs.baseName)) {
+    for (final negativeFilter in negativeFilters) {
+      if (!negativeFilter.matches(entityArgs.path, entityArgs.baseName)) {
+        return false;
+      }
+    }
+
+    for (final regExpFilter in regExpFilters) {
+      if (!regExpFilter.matches(entityArgs.path, entityArgs.baseName)) {
         return false;
       }
     }
@@ -272,6 +284,7 @@ class FileList {
     if (!getMatchedPath(entityArgs, straightFilter, visitedDirNames)) {
       return false;
     }
+
     if (entityArgs.isLink && followLinks) {
       if (entityArgs.type == FileSystemEntityType.directory) {
         return false;
@@ -292,11 +305,17 @@ class FileList {
       var filter = FileFilter(fileSystem);
       await filter.setPattern(pattern);
 
-      if (filter.inverse) {
-        inverseFilters.add(filter);
+      if (filter.negative) {
+        negativeFilters.add(filter);
+      } else if (filter.regExp != null) {
+        regExpFilters.add(filter);
       } else {
         straightFilters.add(filter);
       }
+    }
+
+    if (straightFilters.isEmpty) {
+      straightFilters.add(FileFilter.any(fileSystem));
     }
   }
 
@@ -307,11 +326,17 @@ class FileList {
       var filter = FileFilter(fileSystem);
       filter.setPatternSync(pattern);
 
-      if (filter.inverse) {
-        inverseFilters.add(filter);
+      if (filter.negative) {
+        negativeFilters.add(filter);
+      } else if (filter.regExp != null) {
+        regExpFilters.add(filter);
       } else {
         straightFilters.add(filter);
       }
+    }
+
+    if (straightFilters.isEmpty) {
+      straightFilters.add(FileFilter.any(fileSystem));
     }
   }
 
