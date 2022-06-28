@@ -41,32 +41,32 @@ void main() {
       test('dir - empty - add', () {
         expect(
             fsp.adjustTrailingSeparator('', FileSystemEntityType.directory,
-                append: true),
+                isAppend: true),
             r'');
       });
       test('dir - empty - remove', () {
         expect(
             fsp.adjustTrailingSeparator('', FileSystemEntityType.directory,
-                append: true),
+                isAppend: true),
             r'');
       });
       test('dir - root - add', () {
         expect(
             fsp.adjustTrailingSeparator(sep, FileSystemEntityType.directory,
-                append: true),
+                isAppend: true),
             sep);
       });
       test('dir - root - remove', () {
         expect(
             fsp.adjustTrailingSeparator(sep, FileSystemEntityType.directory,
-                append: true),
+                isAppend: true),
             sep);
       });
       test('dir - drive (win) - add', () {
         if (fs.style == FileSystemStyle.windows) {
           expect(
               fsp.adjustTrailingSeparator(r'c:', FileSystemEntityType.directory,
-                  append: true),
+                  isAppend: true),
               r'c:.\');
         }
       });
@@ -74,93 +74,102 @@ void main() {
         if (fs.style == FileSystemStyle.windows) {
           expect(
               fsp.adjustTrailingSeparator(r'c:', FileSystemEntityType.directory,
-                  append: false),
+                  isAppend: false),
               r'c:');
         }
       });
       test('dir - abc - add', () {
         expect(
             fsp.adjustTrailingSeparator('abc', FileSystemEntityType.directory,
-                append: true),
+                isAppend: true),
             r'abc' + sep);
       });
       test('dir - abc - remove', () {
         expect(
             fsp.adjustTrailingSeparator(
                 'abc' + sep, FileSystemEntityType.directory,
-                append: false),
+                isAppend: false),
             r'abc');
       });
       test('dir - ab/c - add', () {
         expect(
             fsp.adjustTrailingSeparator(
                 'ab' + sep + 'c', FileSystemEntityType.directory,
-                append: true),
+                isAppend: true),
             r'ab' + sep + 'c' + sep);
       });
       test('dir - ab/c - remove', () {
         expect(
             fsp.adjustTrailingSeparator(
                 'ab' + sep + 'c', FileSystemEntityType.directory,
-                append: false),
+                isAppend: false),
             r'ab' + sep + 'c');
       });
       test('file - add', () {
         expect(
             fsp.adjustTrailingSeparator(r'abc', FileSystemEntityType.file,
-                append: true),
+                isAppend: true),
             r'abc');
       });
       test('file - remove', () {
         expect(
             fsp.adjustTrailingSeparator(r'abc' + sep, FileSystemEntityType.file,
-                append: false),
+                isAppend: false),
             r'abc' + sep);
       });
     });
+    group('getFullPath - ', () {
+      test('empty', () {
+        expect(fsp.equals(fsp.getFullPath(''), fsp.current), true);
+      });
+      test('current dir', () {
+        expect(fsp.equals(fsp.getFullPath('.'), fsp.current), true);
+      });
+      test('parent dir', () {
+        final full = fsp.getFullPath('..');
+        expect(fsp.equals(full, fsp.dirname(fsp.current)), true);
+      });
+      test('parent/other', () {
+        final full = fsp.getFullPath('a$sep..$sep..$sep..${sep}bc');
+        final dirName = fsp.dirname(fsp.current);
+        expect(fsp.equals(full, '$dirName${sep}bc'), true);
+      });
+      test('absolute', () {
+        final full = fsp.getFullPath('${sep}a${sep}bc');
+        expect(fsp.equals(full, '${sep}a${sep}bc'), true);
+      });
+      test('absolute with double sep', () {
+        final full = fsp.getFullPath('$sep${sep}a$sep.$sep${sep}bc');
+        expect(fsp.equals(full, '${sep}a${sep}bc'), true);
+      });
+      test('file in the root dir', () {
+        final full = fsp.getFullPath('${sep}Abc.txt');
+        expect(fsp.equals(full, '${sep}Abc.txt'), true);
+      });
+      test('getFullPath - a mix of separators', () {
+        final full = fsp.getFullPath(r'/A\b/C\d');
+        expect(
+            fsp.equals(full, (fsp.isPosix ? r'/A\b/C\d' : r'\A\b\C\d')), true);
+      });
+      test('getFullPath - unicode characters', () {
+        final orig = '$sepСаша.Текст';
+        final full = fsp.getFullPath(orig);
+        expect(fsp.equals(full, orig), true);
+      });
+    });
     group('PathExt - glob - ${fs.styleName} -', () {
-      test('create - null', () {
-        expect(fsp.createGlob(null).pattern, r'*');
-      });
-      test('create - empty', () {
-        expect(fsp.createGlob('').pattern, r'*');
-      });
-      test('create - non-empty', () {
-        expect(fsp.createGlob('**/*.{a,b}').pattern, r'**/*.{a,b}{,/**}');
-      });
-      test('is pattern - null', () {
-        expect(PathExt.isGlobPattern(null), false);
-      });
-      test('is pattern - empty', () {
-        expect(PathExt.isGlobPattern(''), false);
-      });
-      test('is pattern - abc/def.txt', () {
-        expect(PathExt.isGlobPattern('abc${sep}def.txt'), false);
-      });
-      test('is pattern - abc*.txt', () {
-        expect(PathExt.isGlobPattern('abc*def.txt'), true);
-      });
-      test('is pattern - abc.{doc,txt}', () {
-        expect(PathExt.isGlobPattern('abc.{doc,txt}'), true);
-      });
-      test('is pattern - [ab]c.txt', () {
-        expect(PathExt.isGlobPattern('[ab]c.txt'), true);
-      });
-      test('is pattern - !abc.txt', () {
-        expect(PathExt.isGlobPattern('!abc.txt'), true);
-      });
-      test('is recursive - abc/def.txt', () {
-        expect(fsp.isRecursivePattern('abc${sep}def.txt'), false);
-      });
-      test('is recursive - **.txt', () {
-        expect(fsp.isRecursivePattern('**.txt'), true);
-      });
-      test('is recursive - abc/*.txt', () {
-        expect(fsp.isRecursivePattern('abc$sep*.txt'), false);
-      });
-      test('is recursive - ab?c/*.txt', () {
-        expect(fsp.isRecursivePattern('ab?c$sep*.txt'), true);
-      });
+      // test('is recursive - abc/def.txt', () {
+      //   expect(fsp.isRecursivePattern('abc${sep}def.txt'), false);
+      // });
+      // test('is recursive - **.txt', () {
+      //   expect(fsp.isRecursivePattern('**.txt'), true);
+      // });
+      // test('is recursive - abc/*.txt', () {
+      //   expect(fsp.isRecursivePattern('abc$sep*.txt'), false);
+      // });
+      // test('is recursive - ab?c/*.txt', () {
+      //   expect(fsp.isRecursivePattern('ab?c$sep*.txt'), true);
+      // });
     });
     group('PathExt - is hidden - ${fs.styleName} -', () {
       test('empty', () {
@@ -218,47 +227,6 @@ void main() {
       });
       test('escaped - contains drive', () {
         expect(fsp.isPathEscaped('c:'), !fsp.isPosix);
-      });
-    });
-    group('PathExt - splitPattern - ${fs.styleName} -', () {
-      test('null', () {
-        expect(fsp.splitPattern(null), ['', '*']);
-      });
-      test('empty', () {
-        expect(fsp.splitPattern(''), ['', '*']);
-      });
-      test('abc/', () {
-        expect(fsp.splitPattern('abc$sep'), ['abc', '*']);
-      });
-      test('/abc.def', () {
-        expect(fsp.splitPattern('${sep}abc.def'), [sep, 'abc.def']);
-      });
-      test('Windows root + abc.def', () {
-        if (fsp.isPosix) {
-          expect(fsp.splitPattern(r'c:\abc.def'), ['', r'c:\abc.def']);
-        } else {
-          expect(fsp.splitPattern(r'c:\abc.def'), [r'c:\', 'abc.def']);
-        }
-      });
-      test('abc/def', () {
-        expect(fsp.splitPattern('abc${sep}def'), ['abc', 'def']);
-      });
-      test('/ab/cd/efgh.ijk', () {
-        expect(fsp.splitPattern('${sep}ab${sep}cd${sep}efgh.ijk'),
-            ['${sep}ab${sep}cd', 'efgh.ijk']);
-      });
-      test('ab/cd*/efgh/**.ijk', () {
-        expect(fsp.splitPattern('ab${sep}cd*${sep}efgh$sep**.ijk'),
-            ['ab', 'cd*${sep}efgh$sep**.ijk']);
-      });
-      test('ab <backslash> cd*/efgh/**.ijk', () {
-        if (fsp.isPosix) {
-          expect(fsp.splitPattern('ab\\cd*${sep}efgh$sep**.ijk'),
-              ['', 'ab\\cd*${sep}efgh$sep**.ijk']);
-        } else {
-          expect(fsp.splitPattern('ab\\cd*${sep}efgh$sep**.ijk'),
-              ['ab', 'cd*${sep}efgh$sep**.ijk']);
-        }
       });
     });
     group('PathExt - toPosix - ${fs.styleName} -', () {

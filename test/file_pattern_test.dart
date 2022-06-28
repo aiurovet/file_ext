@@ -9,36 +9,36 @@ import 'package:test/test.dart';
 void main() {
   group('FilePattern -', () {
     test('constructor - default', () {
-      final fp = FilePattern('abc');
-      expect(fp.caseSensitive, null);
-      expect(fp.negative, false);
-      expect(fp.regular, false);
-      expect(fp.string, 'abc');
-      expect(fp.unicode, false);
+      final fp = FileFilter('abc');
+      expect(fp.isCaseSensitive, null);
+      expect(fp.isNegative, false);
+      expect(fp.isRegular, false);
+      expect(fp.pattern, 'abc');
+      expect(fp.isUnicode, false);
     });
     test('constructor - case-sensitive', () {
-      final fp = FilePattern('abc', caseSensitive: true);
-      expect(fp.caseSensitive, true);
+      final fp = FileFilter('abc', isCaseSensitive: true);
+      expect(fp.isCaseSensitive, true);
     });
     test('constructor - case-insensitive', () {
-      final fp = FilePattern('abc', caseSensitive: false);
-      expect(fp.caseSensitive, false);
+      final fp = FileFilter('abc', isCaseSensitive: false);
+      expect(fp.isCaseSensitive, false);
     });
     test('constructor - negative', () {
-      final fp = FilePattern('abc', negative: true);
-      expect(fp.negative, true);
+      final fp = FileFilter('abc', isNegative: true);
+      expect(fp.isNegative, true);
     });
     test('constructor - regular', () {
-      final fp = FilePattern('abc', regular: true);
-      expect(fp.regular, true);
+      final fp = FileFilter('abc', isRegular: true);
+      expect(fp.isRegular, true);
     });
     test('constructor - unicode 1', () {
-      final fp = FilePattern('abc\\p{}', regular: true);
-      expect(fp.unicode, true);
+      final fp = FileFilter('abc\\p{}', isRegular: true);
+      expect(fp.isUnicode, true);
     });
     test('constructor - unicode 2', () {
-      final fp = FilePattern('abc\u{10000}');
-      expect(fp.unicode, true);
+      final fp = FileFilter('abc\u{10000}');
+      expect(fp.isUnicode, true);
     });
   });
 }

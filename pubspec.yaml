@@ -11,5 +11,8 @@ dependencies:
   glob: ^2.0.2
 
 dev_dependencies:
+  intl: ^0.17.0
   lints: ^1.0.0
+  parse_args: ^0.7.1
   test: ^1.16.0
+  thin_logger: ^0.1.3

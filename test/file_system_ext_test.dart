@@ -31,59 +31,22 @@ void main() {
         await fs.file(fsp.join(sub1, 'file33.docx')).create();
       });
 
-      test('getFullPath - empty', () {
-        expect(fsp.equals(fs.getFullPath(''), fsp.current), true);
-      });
-      test('getFullPath - current dir', () {
-        expect(fsp.equals(fs.getFullPath('.'), fsp.current), true);
-      });
-      test('getFullPath - parent dir', () {
-        final full = fs.getFullPath('..');
-        expect(fsp.equals(full, fsp.dirname(fsp.current)), true);
-      });
-      test('getFullPath - parent/other', () {
-        final full = fs.getFullPath('a$sep..$sep..$sep..${sep}bc');
-        final dirName = fsp.dirname(fsp.current);
-        expect(fsp.equals(full, '$dirName${sep}bc'), true);
-      });
-      test('getFullPath - absolute', () {
-        final full = fs.getFullPath('${sep}a${sep}bc');
-        expect(fsp.equals(full, '${sep}a${sep}bc'), true);
-      });
-      test('getFullPath - absolute with double sep', () {
-        final full = fs.getFullPath('$sep${sep}a$sep.$sep${sep}bc');
-        expect(fsp.equals(full, '${sep}a${sep}bc'), true);
-      });
-      test('getFullPath - file in the root dir', () {
-        final full = fs.getFullPath('${sep}Abc.txt');
-        expect(fsp.equals(full, '${sep}Abc.txt'), true);
-      });
-      test('getFullPath - a mix of separators', () {
-        final full = fs.getFullPath(r'/A\b/C\d');
-        expect(
-            fsp.equals(full, (fsp.isPosix ? r'/A\b/C\d' : r'\A\b\C\d')), true);
-      });
-      test('getFullPath - unicode characters', () {
-        final orig = '$sepСаша.Текст';
-        final full = fs.getFullPath(orig);
-        expect(fsp.equals(full, orig), true);
-      });
-      test('list - top', () async {
-        var flst = await fs.list(root: top, patterns: [
-          FilePattern('*.doc*'),
-          FilePattern('*.tx*'),
-          FilePattern('*.docx', negative: true),
-        ]);
-        expect(flst.length, 2);
-      });
-      test('listSync - top', () async {
-        var flst = fs.listSync(root: top, patterns: [
-          FilePattern('*.doc*'),
-          FilePattern('*.tx*'),
-          FilePattern('*.docx', negative: true)
-        ]);
-        expect(flst.length, 2);
-      });
+      // test('list - top', () async {
+      //   var flst = await fs.list(root: top, patterns: [
+      //     FileFilter('*.doc*'),
+      //     FileFilter('*.tx*'),
+      //     FileFilter('*.docx', isNegative: true),
+      //   ]);
+      //   expect(flst.length, 2);
+      // });
+      // test('listSync - top', () async {
+      //   var flst = fs.listSync(root: top, patterns: [
+      //     FileFilter('*.doc*'),
+      //     FileFilter('*.tx*'),
+      //     FileFilter('*.docx', isNegative: true)
+      //   ]);
+      //   expect(flst.length, 2);
+      // });
     });
   });
 }

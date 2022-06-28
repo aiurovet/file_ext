@@ -19,7 +19,7 @@ import 'print_err_io.dart' if (dart.library.html) 'print_err_html.dart';
 
 /// A type for the argument parsing callback functions
 ///
-typedef ParseArgsProc = void Function(String);
+typedef ParseArgsHandler = void Function(String);
 
 /// The actual usage
 ///
@@ -36,11 +36,11 @@ Future printFileList(FileSystem fileSystem,
         allowHidden: allowHidden,
         followLinks: followLinks,
         type: type,
-        listProcSync: (fileList, entityPath, entityName, stat) {
+        listHandlerSync: (fileList, entityPath, entityName, stat) {
           print(entityPath);
           return true;
         },
-        errorProc: (e, stackTrace) {
+        errorHandler: (e, stackTrace) {
           printErr(e.toString());
           return true;
         });
@@ -92,7 +92,7 @@ void main(List<String> args) async {
 
 /// A primitive command-line arguments parser (any other may be used instead)
 ///
-void parseArgs(List<String> args, ParseArgsProc onOpt, ParseArgsProc onArg) {
+void parseArgs(List<String> args, ParseArgsHandler onOpt, ParseArgsHandler onArg) {
   for (final arg in args) {
     if (arg.startsWith('-')) {
       onOpt(arg);

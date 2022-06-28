@@ -4,147 +4,136 @@
 import 'package:file/file.dart';
 import 'package:file_ext/file_ext.dart';
 import 'package:glob/glob.dart';
-import 'package:path/path.dart' as p;
 
-/// A supplementary class for `list(...)` and `listSync(...)` of `FileSystemExt`
+/// Model class for file name/path pattern with flags
 ///
 class FileFilter {
-  /// Filter matching any filename or path
+  /// FileSystem object
   ///
-  static FileFilter any(FileSystem fileSystem) =>
-      FileFilter(fileSystem)..setPattern(FilePattern.any);
+  final FileSystem fileSystem;
 
-  /// The filesystem object
+  /// Exact match (true), case-insensitive (false) or OS-specific (null)
   ///
-  late final FileSystem fileSystem;
+  late final bool isCaseSensitive;
 
-  /// The context object
+  /// An opposite match
   ///
-  late final p.Context path;
+  final bool isNegative;
 
-  /// The glob object
+  /// Match file system entity path rather than basename against the pattern
   ///
-  Glob? get glob => _glob;
-  Glob? _glob;
+  late final bool isMatchPath;
 
-  /// A flag indicating the filtering must apply to the whole
-  /// paths rather than basenames
+  /// Sub-directories scan required
   ///
-  bool get matchWholePath => _matchWholePath;
-  var _matchWholePath = false;
+  late final bool isRecursive;
 
-  /// A flag indicating the pattern is meant for checking
-  /// a string does not match the glob
+  /// Treat pattern as a regular expression pattern (true),
+  /// glob pattern (false) or guess (null)
   ///
-  bool get negative => _negative;
-  var _negative = false;
+  late final bool isRegular;
 
-  /// The original pattern
+  /// Actual pattern as string
   ///
-  String get pattern => _pattern;
-  var _pattern = '';
+  late final String pattern;
 
-  /// The regular expression object
+  /// Internal: actual glob pattern
   ///
-  RegExp? get regExp => _regExp;
-  RegExp? _regExp;
+  late final Glob? glob;
 
-  /// The top directory to start from (for glob patterns only)
+  /// Internal: actual regular expression
   ///
-  String dirName = '';
+  late final RegExp? regExp;
 
-  /// The constructor
+  /// Default constructor
   ///
-  FileFilter(FileSystem? fileSystem) {
-    this.fileSystem = fileSystem ?? FileSystemExt.local;
-    path = this.fileSystem.path;
-  }
+  FileFilter(this.fileSystem, String pattern,
+      {bool? isCaseSensitive,
+      this.isNegative = false,
+      this.isRegular = false}) {
+    final fsp = fileSystem.path;
+    final isPosix = fsp.isPosix;
 
-  /// Get the actual glob object for the filesystem entities filtering,
-  /// at this point, the pattern is guaranteed to be without the negation
-  /// prefix
-  ///
-  void _createGlob(FilePattern pattern, bool isDirectory) {
-    if (isDirectory) {
-      dirName = _pattern;
-      _pattern = PathExt.anyPattern;
-      _matchWholePath = false;
+    if (pattern.trim().isEmpty) {
+      pattern = PathExt.anyPattern(false);
+    }
+
+    if (isPosix) {
+      this.pattern = pattern;
+    } else if (isRegular) {
+      this.pattern = fsp.toPosixEscaped(pattern);
     } else {
-      final parts = path.splitPattern(_pattern);
-      dirName = parts[0];
-      _pattern = parts[1];
-      _matchWholePath = _pattern.contains(path.separator);
+      this.pattern = fsp.toPosix(pattern);
     }
 
-    _regExp = null;
-    _glob = Glob(_pattern,
-        context: path,
-        recursive: path.isRecursivePattern(_pattern),
-        caseSensitive: pattern.caseSensitive ?? path.isPosix);
-  }
+    this.isCaseSensitive = isCaseSensitive ?? isPosix;
 
-  /// Get the actual regexp object for the filesystem entities filtering
-  ///
-  void _createRegExp(FilePattern pattern) {
-    _pattern = path.adjustEscaped(_pattern);
-    _matchWholePath = _pattern.contains(path.separatorEscaped);
-    _glob = null;
-    _regExp = RegExp(_pattern,
-        caseSensitive: pattern.caseSensitive ?? path.isPosix,
-        unicode: pattern.unicode);
-  }
-
-  /// Check the [path] matches the straight pattern (without the leading negation
-  /// characters) and return the opposite if [_negative] match is required
-  ///
-  bool matches(String path, String baseName) {
-    var text = (_matchWholePath ? path : baseName);
-    return (_glob?.matches(text) ?? _regExp?.hasMatch(text) ?? true) ^
-        _negative;
-  }
-
-  /// The method to set pattern (async)
-  ///
-  void _setPattern(FilePattern pattern, bool isDirectory) {
-    _negative = pattern.negative;
-    _pattern = path.adjust(pattern.string);
-
-    if (pattern.regular && !isDirectory) {
-      _createRegExp(pattern);
+    if (isRegular) {
+      isRecursive =
+          pattern.replaceAll(r'\\', '').replaceAll(r'\.', '').contains('.*');
     } else {
-      _createGlob(pattern, isDirectory);
+      isRecursive = pattern.contains('**');
+    }
+
+    isMatchPath =
+        isRecursive || this.pattern.contains(PathExt.pathSeparatorPosix);
+
+    if (isRegular) {
+      glob = null;
+      regExp = RegExp(pattern, caseSensitive: this.isCaseSensitive, unicode: true);
+    } else {
+      glob = Glob(pattern,
+          context: fileSystem.path, caseSensitive: this.isCaseSensitive);
+      regExp = null;
     }
   }
 
-  /// The method to set pattern (async)
+  /// FilePattern for 'any file or path matches'
   ///
-  Future setPattern(FilePattern pattern) async {
-    final pat = pattern.string;
+  static FileFilter any(FileSystem fileSystem, {bool isRecursive = false}) =>
+      FileFilter(fileSystem, PathExt.anyPattern(isRecursive));
 
-    // Windows-style MemoryFileSystem breaks if path is less than 3 characters
-    //
-    var isDir = ((pat == path.separator) || (pat == PathExt.altSeparator));
-
-    if (!isDir) {
-      isDir = await fileSystem.isDirectory(pat);
+  /// If pattern represents a directory, then re-create new filter by appending 'anyPattern'
+  ///
+  Future<FileFilter> adjust(FileSystem fileSystem) async {
+    if (isRegular || !(await fileSystem.directory(pattern).exists())) {
+      return this;
     }
-
-    _setPattern(pattern, isDir);
+    return copyWith(
+        pattern:
+            fileSystem.path.join(pattern, PathExt.anyPattern(isRecursive)));
   }
 
-  /// The method to set pattern (async)
+  /// If pattern represents a directory, then re-create new filter by appending 'anyPattern' (sync)
   ///
-  void setPatternSync(FilePattern pattern) {
-    final pat = pattern.string;
-
-    // Windows-style MemoryFileSystem breaks if path is less than 3 characters
-    //
-    var isDir = ((pat == path.separator) || (pat == PathExt.altSeparator));
-
-    if (!isDir) {
-      isDir = fileSystem.isDirectorySync(pat);
+  FileFilter adjustSync(FileSystem fileSystem) {
+    if (isRegular || !(fileSystem.directory(pattern).existsSync())) {
+      return this;
     }
+    return copyWith(
+        pattern:
+            fileSystem.path.join(pattern, PathExt.anyPattern(isRecursive)));
+  }
 
-    _setPattern(pattern, isDir);
+  /// FilePattern for 'any file or path matches'
+  ///
+  FileFilter copyWith(
+          {FileSystem? fileSystem,
+          String? pattern,
+          bool? isCaseSensitive,
+          bool? isNegative,
+          bool? isRegular}) =>
+      FileFilter(fileSystem ?? this.fileSystem, pattern ?? this.pattern,
+          isCaseSensitive: isCaseSensitive ?? this.isCaseSensitive,
+          isNegative: isNegative ?? this.isNegative,
+          isRegular: isRegular ?? this.isRegular);
+
+  /// Actual filtering
+  ///
+  bool hasMatch(String posixPath, String baseName) {
+    final input = (isMatchPath ? posixPath : baseName);
+    final hasMatch = glob?.matches(input) ?? regExp?.hasMatch(input) ?? false;
+
+    return hasMatch ^ isNegative;
   }
 }

@@ -13,7 +13,7 @@ void main() {
 
     group('FileFilter - ${fs.styleName} -', () {
       test('empty', () {
-        var ff = FileFilter(fs)..setPatternSync(FilePattern(''));
+        var ff = FileFilter(fs)..setPatternSync(FileFilter(''));
         expect(ff.dirName, '');
         expect(ff.pattern, '*');
         expect(ff.matchWholePath, false);
@@ -22,7 +22,7 @@ void main() {
         expect(ff.regExp, null);
       });
       test('root dir', () {
-        var ff = FileFilter(fs)..setPatternSync(FilePattern('/'));
+        var ff = FileFilter(fs)..setPatternSync(FileFilter('/'));
         expect(ff.dirName, sep);
         expect(ff.pattern, '*');
         expect(ff.matchWholePath, false);
@@ -32,7 +32,7 @@ void main() {
       });
       test('recursive', () {
         var ff = FileFilter(fs);
-        ff.setPatternSync(FilePattern('a/bc/**.txt'));
+        ff.setPatternSync(FileFilter('a/bc/**.txt'));
         expect(ff.dirName, 'a${sep}bc');
         expect(ff.pattern, '**.txt');
         expect(ff.matchWholePath, false);
@@ -41,7 +41,7 @@ void main() {
         expect(ff.regExp, null);
       });
       test('recursive including directories', () {
-        var ff = FileFilter(fs)..setPatternSync(FilePattern('a/b*c/**.txt'));
+        var ff = FileFilter(fs)..setPatternSync(FileFilter('a/b*c/**.txt'));
         expect(ff.dirName, 'a');
         expect(ff.pattern, 'b*c$sep**.txt');
         expect(ff.matchWholePath, true);
@@ -50,7 +50,7 @@ void main() {
         expect(ff.regExp, null);
       });
       test('regexp', () {
-        var ff = FileFilter(fs)..setPatternSync(FilePattern('^([ab]|[yz])'));
+        var ff = FileFilter(fs)..setPatternSync(FileFilter('^([ab]|[yz])'));
         expect(ff.dirName, '');
         expect(ff.pattern, '^([ab]|[yz])');
         expect(ff.matchWholePath, false);
@@ -60,7 +60,7 @@ void main() {
       });
       test('negative', () {
         var ff = FileFilter(fs)
-          ..setPatternSync(FilePattern('/a/b/*.txt', negative: true));
+          ..setPatternSync(FileFilter('/a/b/*.txt', isNegative: true));
         expect(ff.dirName, '${sep}a${sep}b');
         expect(ff.pattern, '*.txt');
         expect(ff.matchWholePath, false);

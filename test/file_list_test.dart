@@ -22,9 +22,9 @@ void main() {
 
     final roots = <String>[];
 
-    final pat = <FilePattern>[
-      FilePattern('$top1/*.doc'),
-      FilePattern('$sub22/**.{txt,lst} and not \\/file[13][12]')
+    final pat = <FileFilter>[
+      FileFilter('$top1/*.doc'),
+      FileFilter('$sub22/**.{txt,lst} and not \\/file[13][12]')
     ];
 
     FileList? fl;

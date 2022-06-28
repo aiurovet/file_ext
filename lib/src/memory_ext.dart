@@ -5,7 +5,7 @@ import 'package:file/memory.dart';
 
 /// A callback function defintion
 ///
-typedef MemoryFileSystemProc = void Function(MemoryFileSystem fs);
+typedef MemoryFileSystemHandler = void Function(MemoryFileSystem fs);
 
 /// A helper extension for the MemoryFileSystem API
 /// Useful mostly for unit tests
@@ -18,9 +18,9 @@ extension MemoryFileSystemExt on MemoryFileSystem {
 
   /// The way to perform processing for each in-memory file system
   ///
-  static void forEach(MemoryFileSystemProc mfsProc) {
+  static void forEach(MemoryFileSystemHandler handler) {
     for (final fs in _memoryFileSystems) {
-      mfsProc(fs);
+      handler(fs);
     }
   }
 

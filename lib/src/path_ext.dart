@@ -2,7 +2,6 @@
 // All rights reserved under MIT license (see LICENSE file)
 
 import 'package:file/file.dart';
-import 'package:glob/glob.dart';
 import 'package:path/path.dart' as p;
 
 /// A helper extension for the Path API
@@ -10,23 +9,23 @@ import 'package:path/path.dart' as p;
 extension PathExt on p.Context {
   /// Alt directory separator (differs from separator for Windows-style FS only)
   ///
-  static const altSeparator = r'/';
+  static const altSeparator = pathSeparatorPosix;
 
   /// A variant of [altSeparator] for regexp patterns
   ///
   static final altSeparatorEscaped = RegExp.escape(altSeparator);
 
-  /// A pattern to list any file system element
+  /// Const: path separator for POSIX-like filesystems
   ///
-  static final anyPattern = r'*';
+  static const pathSeparatorPosix = r'/';
 
-  /// A variant of [anyPattern] to perform recursive scans
+  /// Const: path separator for Windows filesystem
   ///
-  static final anyPatternRecursive = '$anyPattern$anyPattern';
+  static const pathSeparatorWindows = r'\';
 
   /// Check whether the file system is case-sensitive
   ///
-  bool get caseSensitive => (separator == altSeparator);
+  bool get isCaseSensitive => (separator == altSeparator);
 
   /// A separator between the drive name and the rest of the path
   /// (relevant to Windows only)
@@ -36,10 +35,6 @@ extension PathExt on p.Context {
   /// A variant of [driveSeparator] for regexp patterns
   ///
   static final driveSeparatorEscaped = r':';
-
-  /// A pattern to locate glob patterns
-  ///
-  static final _globPatternRE = RegExp(r'[!\*\?\{\[]', caseSensitive: false);
 
   /// A regexp to filter hidden files (POSIX)
   ///
@@ -92,7 +87,7 @@ extension PathExt on p.Context {
   }
 
   String adjustTrailingSeparator(String? aPath, FileSystemEntityType type,
-      {bool append = false}) {
+      {bool isAppend = false}) {
     if ((aPath == null) || aPath.isEmpty) {
       return '';
     }
@@ -109,30 +104,102 @@ extension PathExt on p.Context {
           return aPath;
         }
       }
-      return (append ? aPath : aPath.substring(0, lastPos));
-    } else if ((lastChr == driveSeparator) && append && !isPosix) {
+      return (isAppend ? aPath : aPath.substring(0, lastPos));
+    } else if ((lastChr == driveSeparator) && isAppend && !isPosix) {
       return aPath + shortCurDirName + separator;
     }
 
-    return (append ? aPath + separator : aPath);
+    return (isAppend ? aPath + separator : aPath);
   }
 
-  /// Convert [pattern] string to a proper glob object
+  /// A pattern to list any file system element
   ///
-  Glob createGlob(String? pattern) {
-    var patternEx =
-        ((pattern == null) || pattern.isEmpty ? anyPattern : pattern);
+  static String anyPattern(bool isRecursive) => (isRecursive ? '**' : '*');
 
-    return Glob(patternEx,
-        context: this,
-        recursive: isRecursivePattern(patternEx),
-        caseSensitive: caseSensitive);
+  /// Convert [aPath] to the fully qualified path\
+  /// \
+  /// For POSIX, it calls `canonicalize()`\
+  /// For Windows, it takes an absolute path,
+  /// prepends it with the current drive (if omitted),
+  /// and resolves . and ..
+  ///
+  String getFullPath(String? aPath) {
+    // If path is null, return the current directory
+    //
+    if (aPath == null) {
+      return current;
+    }
+
+    // If path is empty, return the current directory
+    //
+    if (aPath.isEmpty) {
+      return current;
+    }
+
+    // Posix is always 'in chocolate'
+    //
+    if (isPosix) {
+      return canonicalize(aPath);
+    }
+
+    // Get absolute path
+    //
+    var absPath = aPath;
+
+    // If no drive is present, then take it from the current directory
+    //
+    if (aPath.startsWith(separator)) {
+      final curDirName = current;
+      absPath = curDirName.substring(0, curDirName.indexOf(separator)) + aPath;
+    } else if (!aPath.contains(PathExt.driveSeparator)) {
+      absPath = join(current, aPath);
+    }
+
+    // Split path in parts (drive, directories, basename)
+    //
+    final parts = absPath.split(separator);
+    var drive = parts[0];
+
+    // Resolve all . and .. occurrences
+    //
+    var result = '';
+
+    for (var i = 0, n = parts.length; i < n; i++) {
+      final part = parts[i];
+
+      switch (part) {
+        case '':
+          continue;
+        case PathExt.shortCurDirName:
+          continue;
+        case PathExt.shortParentDirName:
+          final breakPos = result.lastIndexOf(separator);
+          if (breakPos >= 0) {
+            result = result.substring(0, breakPos);
+          }
+          continue;
+        default:
+          if (i > 0) {
+            // full path should start with drive
+            result += separator;
+          }
+          result += part;
+          continue;
+      }
+    }
+
+    // Disaster recovery
+    //
+    if (result.isEmpty) {
+      result = drive + separator;
+    } else if (result == drive) {
+      result += separator;
+    }
+
+    // Return the result
+    //
+    return result;
   }
-
-  /// Check whether [pattern] contains spoecial glob pattern characters
-  ///
-  static bool isGlobPattern(String? pattern) =>
-      (pattern != null) && _globPatternRE.hasMatch(pattern);
 
   /// Check whether [aPath] represents a hidden file or directory:
   /// i.e. [aPath] contains a sub-dir or a filename starting with
@@ -173,55 +240,6 @@ extension PathExt on p.Context {
     }
     return (aPath.contains(altSeparatorEscaped) ||
         aPath.contains(driveSeparatorEscaped));
-  }
-
-  /// Check whether [pattern] indicates recursive directory scan
-  ///
-  bool isRecursivePattern(String? pattern) =>
-      (pattern != null) && pattern.contains(anyPatternRecursive);
-
-  /// Adjust [pattern] if needed, then split that into a non-glob root directory name and a glob sub-pattern:\
-  /// `'/ab.ijk' => '/', 'ab.ijk'` (POSIX)\
-  /// `'C:\ab.ijk' => 'C:\', 'ab.ijk'` (Windows)\
-  /// `'/ab/cd/efgh.ijk' => '/ab/cd', 'efgh.ijk'` (POSIX)\
-  /// `'/ab/cd/efgh.ijk' => '\ab\cd', 'efgh.ijk'` (Windows)\
-  /// `'ab\cd*/efgh/**.ijk' => '', 'ab\cd*/efgh/**.ijk'` (POSIX)\
-  /// `'ab\cd\*/efgh\**.ijk' => 'ab', 'cd\*\efgh\**.ijk' (Windows)`
-  ///
-  List<String> splitPattern(String? pattern, {bool adjusted = false}) {
-    if ((pattern == null) || pattern.isEmpty) {
-      return ['', anyPattern];
-    }
-
-    var patternEx = adjusted ? pattern : adjust(pattern);
-
-    if (!patternEx.contains(separator)) {
-      return ['', patternEx];
-    }
-
-    var globPos = _globPatternRE.firstMatch(patternEx)?.start ?? -1;
-    var subPattern =
-        (globPos < 0 ? patternEx : patternEx.substring(0, globPos));
-    var lastSepPos = subPattern.lastIndexOf(separator);
-
-    if (lastSepPos < 0) {
-      return ['', patternEx];
-    }
-
-    subPattern = patternEx.substring(lastSepPos + 1);
-
-    if ((lastSepPos == 0) ||
-        (!isPosix && (patternEx[lastSepPos - 1] == driveSeparator))) {
-      ++lastSepPos;
-    }
-
-    var root = patternEx.substring(0, lastSepPos);
-
-    if (subPattern.isEmpty) {
-      subPattern = anyPattern;
-    }
-
-    return [root, subPattern];
   }
 
   /// Convert all separators in [aPath] to the POSIX-compliant ones
