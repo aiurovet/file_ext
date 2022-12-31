@@ -11,7 +11,10 @@ typedef MemoryFileSystemHandler = void Function(MemoryFileSystem fs);
 /// Useful mostly for unit tests
 ///
 extension MemoryFileSystemExt on MemoryFileSystem {
-  static final _memoryFileSystems = [
+  /// Get memory file systems of all styles
+  ///
+  static List<MemoryFileSystem> get all => _all;
+  static final _all = [
     MemoryFileSystem(style: FileSystemStyle.posix),
     MemoryFileSystem(style: FileSystemStyle.windows),
   ];
@@ -19,21 +22,23 @@ extension MemoryFileSystemExt on MemoryFileSystem {
   /// The way to perform processing for each in-memory file system
   ///
   static void forEach(MemoryFileSystemHandler handler) {
-    for (final fs in _memoryFileSystems) {
-      handler(fs);
+    for (final mfs in _all) {
+      handler(mfs);
     }
   }
 
-  /// Short name
+  /// Get short style name
   ///
-  String get styleName {
-    switch (style) {
-      case FileSystemStyle.posix:
-        return 'POSIX';
-      case FileSystemStyle.windows:
-        return 'Windows';
-      default:
-        return '';
+  String getStyleName() {
+    final name = style.toString();
+    final start = name.lastIndexOf('_');
+    var end = name.length;
+    final lastCode = name[end - 1].toLowerCase().codeUnitAt(0);
+
+    if ((lastCode < 0x60 /* 'a' */) || (lastCode > 0x7A /* 'z' */)) {
+      --end;
     }
+
+    return name.substring(start + 1, end);
   }
 }

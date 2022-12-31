@@ -1,9 +1,12 @@
 // Copyright (c) 2022, Alexander Iurovetski
 // All rights reserved under MIT license (see LICENSE file)
 
+import 'dart:io';
+
 import 'package:file/file.dart';
 import 'package:file/local.dart';
 import 'package:file_ext/file_ext.dart';
+import 'package:glob/glob.dart';
 import 'package:intl/intl.dart';
 import 'package:parse_args/parse_args.dart';
 import 'package:thin_logger/thin_logger.dart';
@@ -15,6 +18,8 @@ typedef ParseArgsHandler = void Function(String);
 /// Application
 ///
 class Options {
+  static const appName = 'file_ext_example';
+
   /// Count findings only
   ///
   var isCountOnly = false;
@@ -24,241 +29,174 @@ class Options {
   var isSync = false;
 
   /// Logger
-  /// 
+  ///
   final logger = Logger();
 
   /// FileSystem
-  /// 
+  ///
   final FileSystem fileSystem;
 
   /// All filters
-  /// 
-  final filterLists = <FileFilterList>[];
+  ///
+  final List<Glob> filters = [];
 
   /// FileList flags
-  /// 
+  ///
   var flags = 0;
 
   /// Directory to start in
-  /// 
-  var roots = <String>[];
+  ///
+  final List<String> roots = [];
 
   /// Entity types to consider
-  /// 
+  ///
   final types = <FileSystemEntityType>[];
 
   /// The actual usage
   ///
   Options(this.fileSystem);
+
+  void parse(List<String> args) {
+    var optDefs = '''
+      |?,h,help|q,quiet|v,verbose|a,all|d,dir::
+      |c,count|L,follow|s,sync|t,type:|::
+    ''';
+
+    var opts = parseArgs(optDefs, args);
+    logger.levelFromFlags(isQuiet: opts.isSet('q'), isVerbose: opts.isSet('v'));
+
+    if (opts.isSet('?')) {
+      printUsage();
+    }
+
+    isCountOnly = opts.isSet('k');
+    isSync = opts.isSet('s');
+
+    flags = 0;
+
+    if (!opts.isSet('L')) {
+      flags |= FileSystemExt.followLinks;
+    }
+
+    if (!opts.isSet('a')) {
+      flags |= FileSystemExt.allowHidden;
+    }
+
+    final typeStr = opts.getStrValue('t')?.toLowerCase();
+
+    if ((typeStr == null) || typeStr.isEmpty || typeStr.contains('d')) {
+      types.add(FileSystemEntityType.directory);
+    }
+
+    if ((typeStr == null) || typeStr.isEmpty || typeStr.contains('f')) {
+      types.add(FileSystemEntityType.file);
+    }
+
+    if ((typeStr == null) || typeStr.isEmpty || typeStr.contains('l')) {
+      types.add(FileSystemEntityType.link);
+    }
+
+    roots.addAll(opts.getStrValues('d'));
+    filters.addAll(opts.getGlobValues(''));
+  }
 }
 
 /// Application singleton
-/// 
+///
 final opt = Options(LocalFileSystem());
+
+/// Run single filter
+///
+Never printUsage() {
+  opt.logger.info('''
+USAGE:
+
+${Options.appName} [OPTIONS]
+
+OPTIONS:
+
+-d, dir DIR   - directory to start in (default: current)
+-c,count      - print count only
+-L,follow     - expand symbolic links
+-s,sync       - fetch synchronously (blocking mode)
+-t,type TYPES - entries to fetch (default - all):
+                d - directory
+                f - file
+                l - link
+ARGUMENTS:
+
+One or more glob patterns
+
+EXAMPLES:
+
+${Options.appName} -d /home/user/Downloads -type f ../Documents/**.{doc,docx} *.txt
+''');
+
+   exit(1);
+}
 
 /// Entry point
 ///
 void main(List<String> args) async {
-  print('\nArgs: $args\n');
-
-  var optDefs = '''
-    +|?,h,help|q,quiet|v,verbose|a,all|d,dir::|k,count|L,follow|p,fullpath|s,sync|t,type:
-      |::>case,nocase,not,r,regex,regexp,noregex,noregexp
-  ''';
-
-  parseArgs(optDefs, args, (isFirstRun, optName, values) {
-    // Show details when not on the first run
-    //
-    if (isFirstRun) {
-      parseArgsFirstRun(optName, values);
-    } else {
-      parseArgsSecondRun(optName, values);
-    }
-  });
+  opt.parse(args);
 
   var count = 0;
 
   if (opt.isSync) {
-    opt.fileSystem.listSync(
-        roots: opt.roots,
-        filterLists: opt.filterLists,
-        flags: opt.flags,
-        types: opt.types,
-        listHandlerSync: (fileList, item) {
-          if (opt.isCountOnly) {
-            ++count;
-          } else {
-            opt.logger.out(opt.fileSystem.path
-                .adjustTrailingSeparator(item.path, item.type, isAppend: true));
-          }
+    opt.fileSystem.forEachEntitySync(
+      roots: opt.roots,
+      filters: opt.filters,
+      flags: opt.flags,
+      types: opt.types,
+      entityHandler: (fileSystem, entity, stat) {
+        if ((entity == null) || (stat == null)) {
           return true;
-        },
-        errorHandler: (fileList, errorInfo) {
-          if (errorInfo.item?.path.isNotEmpty ?? false) {
-            opt.logger.error((errorInfo.error ?? errorInfo.exception).toString());
+        }
+        if (opt.isCountOnly) {
+          ++count;
+        } else {
+          var path = fileSystem.path.adjustTrailingSeparator(entity.path, stat.type, isAppend: true);
+          if (stat.type == FileSystemEntityType.link) {
+            path += ' -> ${fileSystem.file(path).resolveSymbolicLinksSync()}';
           }
-          return true; // continue
-        });
+          opt.logger.out(path);
+        }
+        return true;
+      },
+      exceptionHandler: (fileSystem, entity, stat, exception, stackTrace) {
+        opt.logger.error(exception.toString());
+        return true; // continue
+      });
   } else {
-    await opt.fileSystem.list(
-        roots: opt.roots,
-        filterLists: opt.filterLists,
-        flags: opt.flags,
-        types: opt.types,
-        listHandlerSync: (fileList, item) {
-          if (opt.isCountOnly) {
-            ++count;
-          } else {
-            opt.logger.out(opt.fileSystem.path
-                .adjustTrailingSeparator(item.path, item.type, isAppend: true));
-          }
+    await opt.fileSystem.forEachEntity(
+      roots: opt.roots,
+      filters: opt.filters,
+      flags: opt.flags,
+      types: opt.types,
+      entityHandler: (fileSystem, entity, stat) async {
+        if ((entity == null) || (stat == null)) {
           return true;
-        },
-        errorHandler: (fileList, errorInfo) {
-          if (errorInfo.item?.path.isNotEmpty ?? false) {
-            opt.logger.error((errorInfo.error ?? errorInfo.exception).toString());
+        }
+        if (opt.isCountOnly) {
+          ++count;
+        } else {
+          var path = opt.fileSystem.path.adjustTrailingSeparator(entity.path, stat.type, isAppend: true);
+          if (stat.type == FileSystemEntityType.link) {
+            path += ' -> ${fileSystem.file(path).resolveSymbolicLinksSync()}';
           }
-          return true; // continue
-        });
+          opt.logger.out(path);
+        }
+        return true;
+      },
+      exceptionHandler: (fileSystem, entity, stat, exception, stackTrace) async {
+        opt.logger.error(exception.toString());
+        return true; // continue
+      });
   }
 
   if (opt.isCountOnly) {
     final value = NumberFormat().format(count);
     final units = (count == 1 ? 'entry' : 'entries');
     opt.logger.out('$value $units found');
-  }
-}
-
-/// First iteration of command-line arguments parsing
-///
-void parseArgsFirstRun(String optName, List values) {
-  switch (optName) {
-    case 'help':
-      // printUsage();
-    case 'quiet':
-      opt.logger.level = Logger.levelQuiet;
-      return;
-    case 'verbose':
-      opt.logger.level = Logger.levelVerbose;
-      return;
-  }
-}
-
-/// Second iteration of command-line arguments parsing
-///
-void parseArgsSecondRun(String optName, List values) {
-  if (opt.logger.isVerbose) {
-    opt.logger.verbose('Option "$optName"${values.isEmpty ? '' : ': $values'}');
-  }
-
-  switch (optName) {
-    // Patterns
-    //
-    case '':
-      parseFileFilters(values);
-      return;
-    // List all entries including the hidden ones
-    //
-    case 'all':
-      opt.flags = opt.flags | FileList.allowHidden;
-      return;
-
-    // Count only?
-    //
-    case 'count':
-      opt.isCountOnly = true;
-      return;
-
-    // Directory to start in
-    //
-    case 'dir':
-      for (final value in values) {
-        opt.roots.add(value.toString());
-      }
-      return;
-
-    // Follow links?
-    //
-    case 'follow':
-      opt.flags |= FileList.followLinks;
-      return;
-
-    // Sync calls?
-    //
-    case 'sync':
-      opt.isSync = true;
-      return;
-
-    // Filter by one or more types (comma-separated)
-    //
-    case 'type':
-      switch (values.first.toString().toLowerCase()) {
-        case 'd':
-          opt.types.add(FileSystemEntityType.directory);
-          return;
-        case 'f':
-          opt.types.add(FileSystemEntityType.file);
-          return;
-        case 'l':
-          opt.types.add(FileSystemEntityType.link);
-          return;
-        default:
-          return;
-      }
-    default:
-      throw Exception(
-          'Invalid type: "${values[0]}" (expected: "f", "d" or "l")');
-  }
-}
-
-/// Accumulating filters
-///
-void parseFileFilters(List values) {
-  bool? isCaseSensitive;
-  var isNegative = false;
-  var isOr = true;
-  var isRegular = false;
-
-  final fileSystem = opt.fileSystem;
-  final filterLists = opt.filterLists;
-
-  for (final value in values) {
-    final pattern = value.toString();
-
-    switch (pattern) {
-      case '-and':
-        isOr = false;
-        continue;
-      case '-case':
-        isCaseSensitive = true;
-        continue;
-      case '-nocase':
-        isCaseSensitive = false;
-        continue;
-      case '-not':
-        isNegative = true;
-        continue;
-      case '-or':
-        isOr = true;
-        continue;
-      case '-regexp':
-        isRegular = true;
-        continue;
-      case '-noregexp':
-        isRegular = false;
-        continue;
-      default:
-        break;
-    }
-
-    final filter = FileFilter(fileSystem, pattern, isCaseSensitive: isCaseSensitive, isNegative: isNegative, isRegular: isRegular);
-
-    if (isOr || filterLists.isEmpty) {
-      filterLists.addNew([filter]);
-    } else {
-      filterLists[filterLists.length - 1].addNew(filter);
-    }
-
-    isNegative = false; // applies to the closest pattern only
   }
 }

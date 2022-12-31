@@ -4,37 +4,25 @@
 import 'package:file/file.dart';
 import 'package:path/path.dart' as p;
 
-/// A helper extension for the Path API
+/// A helper extension for Path API
 ///
 extension PathExt on p.Context {
   /// Alt directory separator (differs from separator for Windows-style FS only)
   ///
-  static const altSeparator = pathSeparatorPosix;
-
-  /// A variant of [altSeparator] for regexp patterns
-  ///
-  static final altSeparatorEscaped = RegExp.escape(altSeparator);
+  static const altSeparator = separatorPosix;
 
   /// Const: path separator for POSIX-like filesystems
   ///
-  static const pathSeparatorPosix = r'/';
+  static const separatorPosix = r'/';
 
   /// Const: path separator for Windows filesystem
   ///
-  static const pathSeparatorWindows = r'\';
-
-  /// Check whether the file system is case-sensitive
-  ///
-  bool get isCaseSensitive => (separator == altSeparator);
+  static const separatorWindows = r'\';
 
   /// A separator between the drive name and the rest of the path
   /// (relevant to Windows only)
   ///
   static final driveSeparator = r':';
-
-  /// A variant of [driveSeparator] for regexp patterns
-  ///
-  static final driveSeparatorEscaped = r':';
 
   /// A regexp to filter hidden files (POSIX)
   ///
@@ -47,11 +35,7 @@ extension PathExt on p.Context {
 
   /// Check whether the file system is POSIX-compliant
   ///
-  bool get isPosix => (separator == altSeparator);
-
-  /// A variant of [separator] for regexp patterns
-  ///
-  String get separatorEscaped => RegExp.escape(separator);
+  bool get isPosix => (separator == separatorPosix);
 
   /// A short name of the current directory
   ///
@@ -61,209 +45,123 @@ extension PathExt on p.Context {
   ///
   static const String shortParentDirName = '..';
 
-  /// Adjust [aPath] by replacing every alt separator with the core one
-  /// (the opposite to `toPosix(...)`)
+  /// Replace every [altSeparator] in [path] with [separator]
+  /// This is the opposite to `toPosix(...)`
   ///
-  String adjust(String? aPath) {
-    if (aPath == null) {
+  String adjust(String? path) {
+    if (path == null) {
       return '';
     }
-    if (aPath.isEmpty || (separator == altSeparator)) {
-      return aPath;
+    if (path.isEmpty || altSeparator.isEmpty) {
+      return path;
     }
-    return aPath.replaceAll(altSeparator, separator);
+    return path.replaceAll(altSeparator, separator);
   }
 
-  /// A variant of `adjust(...)` for regexp patterns
-  ///
-  String adjustEscaped(String? aPath) {
-    if ((aPath == null) || aPath.isEmpty) {
-      return '';
-    }
-    if (isPosix) {
-      return aPath;
-    }
-    return aPath.replaceAll(altSeparatorEscaped, separatorEscaped);
-  }
-
-  String adjustTrailingSeparator(String? aPath, FileSystemEntityType type,
+  String adjustTrailingSeparator(String? path, FileSystemEntityType type,
       {bool isAppend = false}) {
-    if ((aPath == null) || aPath.isEmpty) {
+    if ((path == null) || path.isEmpty) {
       return '';
     }
     if (type != FileSystemEntityType.directory) {
-      return aPath;
+      return path;
     }
 
-    final lastPos = aPath.length - 1;
-    final lastChr = aPath[lastPos];
+    final lastPos = path.length - 1;
+    final lastChr = path[lastPos];
 
     if (lastChr == separator) {
       if (!isPosix) {
-        if ((lastPos >= 1) && (aPath[lastPos - 1] == driveSeparator)) {
-          return aPath;
+        if ((lastPos >= 1) && (path[lastPos - 1] == driveSeparator)) {
+          return path;
         }
       }
-      return (isAppend ? aPath : aPath.substring(0, lastPos));
+      return (isAppend ? path : path.substring(0, lastPos));
     } else if ((lastChr == driveSeparator) && isAppend && !isPosix) {
-      return aPath + shortCurDirName + separator;
+      return path + shortCurDirName + separator;
     }
 
-    return (isAppend ? aPath + separator : aPath);
+    return (isAppend ? path + separator : path);
   }
 
   /// A pattern to list any file system element
   ///
   static String anyPattern(bool isRecursive) => (isRecursive ? '**' : '*');
 
-  /// Convert [aPath] to the fully qualified path\
+  /// Convert [path] to the fully qualified path\
   /// \
   /// For POSIX, it calls `canonicalize()`\
   /// For Windows, it takes an absolute path,
   /// prepends it with the current drive (if omitted),
   /// and resolves . and ..
   ///
-  String getFullPath(String? aPath) {
-    // If path is null, return the current directory
+  String getFullPath(String? path) {
+    // If path is null or empty, return the current directory
     //
-    if (aPath == null) {
+    if ((path == null) || path.isEmpty) {
       return current;
     }
 
-    // If path is empty, return the current directory
-    //
-    if (aPath.isEmpty) {
-      return current;
-    }
-
-    // Posix is always 'in chocolate'
+    // Posix is always good
     //
     if (isPosix) {
-      return canonicalize(aPath);
+      return canonicalize(path);
     }
 
     // Get absolute path
     //
-    var absPath = aPath;
+    var absPath = path;
 
     // If no drive is present, then take it from the current directory
     //
-    if (aPath.startsWith(separator)) {
-      final curDirName = current;
-      absPath = curDirName.substring(0, curDirName.indexOf(separator)) + aPath;
-    } else if (!aPath.contains(PathExt.driveSeparator)) {
-      absPath = join(current, aPath);
-    }
-
-    // Split path in parts (drive, directories, basename)
-    //
-    final parts = absPath.split(separator);
-    var drive = parts[0];
-
-    // Resolve all . and .. occurrences
-    //
-    var result = '';
-
-    for (var i = 0, n = parts.length; i < n; i++) {
-      final part = parts[i];
-
-      switch (part) {
-        case '':
-          continue;
-        case PathExt.shortCurDirName:
-          continue;
-        case PathExt.shortParentDirName:
-          final breakPos = result.lastIndexOf(separator);
-          if (breakPos >= 0) {
-            result = result.substring(0, breakPos);
-          }
-          continue;
-        default:
-          if (i > 0) {
-            // full path should start with drive
-            result += separator;
-          }
-          result += part;
-          continue;
+    if (path.startsWith(separator)) {
+      if (path[1] == separator) { // UNC path?
+        return path;
       }
+      final curDirName = current;
+      absPath = curDirName.substring(0, curDirName.indexOf(separator)) + path;
+    } else if (!path.contains(PathExt.driveSeparator)) {
+      absPath = join(current, path);
     }
 
-    // Disaster recovery
-    //
-    if (result.isEmpty) {
-      result = drive + separator;
-    } else if (result == drive) {
-      result += separator;
-    }
-
-    // Return the result
-    //
-    return result;
+    return normalize(absPath);
   }
 
-  /// Check whether [aPath] represents a hidden file or directory:
-  /// i.e. [aPath] contains a sub-dir or a filename starting with
+  /// Check whether [path] represents a hidden file or directory:
+  /// i.e. [path] contains a sub-dir or a filename starting with
   /// a dot (on either POSIX or Windows)
   ///
-  bool isHidden(String aPath) => (isPosix
-      ? _hiddenPosixRE.hasMatch(aPath)
-      : _hiddenWindowsRE.hasMatch(aPath));
+  bool isHidden(String path) => (isPosix
+      ? _hiddenPosixRE.hasMatch(path)
+      : _hiddenWindowsRE.hasMatch(path));
 
-  /// Return true if [aPath] contains a separator
-  /// Under Windows, return true also if [aPath] contains
-  /// altSeparator or driveSeparator
+  /// Return true if [path] contains [separator]
+  /// If [altSeparator] is not empty, return true also if
+  /// [path] contains a non-empty [altSeparator] or [driveSeparator]
   ///
-  bool isPath(String? aPath) {
-    if ((aPath == null) || aPath.isEmpty) {
+  bool isPath(String? path) {
+    if ((path == null) || path.isEmpty) {
       return false;
     }
-    if (aPath.contains(separator)) {
+    if (path.contains(separator)) {
       return true;
     }
-    if (separator == altSeparator) {
+    if (altSeparator.isEmpty) {
       return false;
     }
-    return (aPath.contains(altSeparator) || aPath.contains(driveSeparator));
+    return (path.contains(altSeparator) || path.contains(driveSeparator));
   }
 
-  /// A variant of `isPath(...)` for regexp patterns
+  /// Replace every [separator] in [path] with [separatorPosix]
+  /// This is the opposite to `adjust(...)`
   ///
-  bool isPathEscaped(String? aPath) {
-    if ((aPath == null) || aPath.isEmpty) {
-      return false;
-    }
-    if (aPath.contains(separatorEscaped)) {
-      return true;
-    }
-    if (separator == altSeparatorEscaped) {
-      return false;
-    }
-    return (aPath.contains(altSeparatorEscaped) ||
-        aPath.contains(driveSeparatorEscaped));
-  }
-
-  /// Convert all separators in [aPath] to the POSIX-compliant ones
-  /// (the opposite to `adjust(...)`)
-  ///
-  String toPosix(String? aPath) {
-    if (aPath == null) {
+  String toPosix(String? path) {
+    if (path == null) {
       return '';
     }
-    if (aPath.isEmpty || (separator == altSeparator)) {
-      return aPath;
+    if (path.isEmpty || isPosix) {
+      return path;
     }
-    return aPath.replaceAll(separator, altSeparator);
-  }
-
-  /// A variant of `toPosix(...)` for regexp patterns
-  ///
-  String toPosixEscaped(String? aPath) {
-    if (aPath == null) {
-      return '';
-    }
-    if (aPath.isEmpty || (separator == altSeparator)) {
-      return aPath;
-    }
-    return aPath.replaceAll(separatorEscaped, altSeparatorEscaped);
+    return path.replaceAll(separator, separatorPosix);
   }
 }

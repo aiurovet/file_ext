@@ -5,7 +5,7 @@
   "version": "0.2.0",
   "configurations": [
     { "name": "Ad-hoc", "request": "launch", "type": "dart", "program": "example/file_ext_example.dart",
-      "args": [ "-s", "/usr/li*/**" ]},
+      "args": [ "-c", "-a", "-d", "/usr/bin" ]},
     { "name": "All files only", "request": "launch", "type": "dart", "program": "example/file_ext_example.dart",
       "args": [ "-s", "", "-t", "f" ]},
     { "name": "All + hidden", "request": "launch", "type": "dart", "program": "example/file_ext_example.dart",
@@ -14,9 +14,11 @@
       "args": [ "/bin/X11/**" ]},
     { "name": "All files except docos", "request": "launch", "type": "dart", "program": "example/file_ext_example.dart",
       "args": [ "-not", "*.{md,yml,yaml}" ]},
+    { "name": "Help", "request": "launch", "type": "dart", "program": "example/file_ext_example.dart",
+      "args": [ "-?" ]},
     { "name": "Dart (recursive)", "request": "launch", "type": "dart", "program": "example/file_ext_example.dart",
-      "args": [ "-f", "**.dart" ]},
+      "args": [ "-t=f", "./**.dart" ]},
     { "name": "Dart or Yaml (recursive)", "request": "launch", "type": "dart", "program": "example/file_ext_example.dart",
-      "args": [ "-f", "**.{dart,yaml}" ]}
+      "args": [ "-t=f", "**.{dart,yaml}" ]}
   ]
 }

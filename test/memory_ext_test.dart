@@ -8,23 +8,21 @@ import 'package:test/test.dart';
 ///
 void main() {
   MemoryFileSystemExt.forEach((fs) {
-    var fsp = fs.path;
+    final styleName = fs.getStyleName();
 
-    group('PathExt - ${fs.styleName} -', () {
+    group('PathExt - $styleName -', () {
       test('styleName', () {
-        expect(fs.styleName, fsp.isPosix ? 'POSIX' : 'Windows');
-      });
-      test('forEach', () {
-        var styleNames = <String>[];
-
-        MemoryFileSystemExt.forEach((fs) {
-          styleNames.add(fs.styleName);
-        });
-
-        expect(styleNames.length, 2);
-        expect(styleNames.contains('POSIX'), true);
-        expect(styleNames.contains('Windows'), true);
+        expect(styleName, fs.path.isPosix ? 'Posix' : 'Windows');
       });
     });
+  });
+  test('PathExt - forEach', () {
+    var styleNames = <String>[];
+
+    MemoryFileSystemExt.forEach((mfs) {
+      styleNames.add(mfs.getStyleName());
+    });
+
+    expect(styleNames, ['Posix', 'Windows']);
   });
 }
