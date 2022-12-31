@@ -22,18 +22,18 @@ extension FileSystemExt on FileSystem {
 
   /// Traverse directories and files and call handlers (non-blocking)
   ///
-  Future<Set<String>> forEachEntity({
-    String? root,
-    List<String>? roots,
-    Glob? filter,
-    List<Glob>? filters,
-    FileSystemEntityType? type,
-    List<FileSystemEntityType>? types,
-    int flags = followLinks,
-    FileSystemEntityHandler? entityHandler,
-    FileSystemEntityHandlerSync? entityHandlerSync,
-    FileSystemEntityExceptionHandler? exceptionHandler,
-    FileSystemEntityExceptionHandlerSync? exceptionHandlerSync}) async {
+  Future<Set<String>> forEachEntity(
+      {String? root,
+      List<String>? roots,
+      Glob? filter,
+      List<Glob>? filters,
+      FileSystemEntityType? type,
+      List<FileSystemEntityType>? types,
+      int flags = followLinks,
+      FileSystemEntityHandler? entityHandler,
+      FileSystemEntityHandlerSync? entityHandlerSync,
+      FileSystemEntityExceptionHandler? exceptionHandler,
+      FileSystemEntityExceptionHandlerSync? exceptionHandlerSync}) async {
     final orgRoot = currentDirectory.path;
     final theRoots = _getRoots(root, roots);
     final theFilters = _getFilters(filter, filters);
@@ -52,7 +52,8 @@ extension FileSystemExt on FileSystem {
       for (var theRoot in theRoots) {
         try {
           final curRoot = (theRoot.isEmpty ? orgRoot : theRoot);
-          entities = theFilter.listFileSystem(this, root: curRoot, followLinks: isFollowLinks);
+          entities = theFilter.listFileSystem(this,
+              root: curRoot, followLinks: isFollowLinks);
         } on Exception catch (e, stackTrace) {
           if (exceptionHandlerSync != null) {
             if (!exceptionHandlerSync(this, null, null, e, stackTrace)) {
@@ -98,7 +99,8 @@ extension FileSystemExt on FileSystem {
               }
             }
             if (exceptionHandler != null) {
-              if (!(await exceptionHandler(this, entity, stat, e, stackTrace))) {
+              if (!(await exceptionHandler(
+                  this, entity, stat, e, stackTrace))) {
                 rethrow;
               }
             }
@@ -112,16 +114,16 @@ extension FileSystemExt on FileSystem {
 
   /// Traverse directories and files and call handlers (blocking)
   ///
-  Set<String> forEachEntitySync({
-    String? root,
-    List<String>? roots,
-    Glob? filter,
-    List<Glob>? filters,
-    FileSystemEntityType? type,
-    List<FileSystemEntityType>? types,
-    int flags = followLinks,
-    FileSystemEntityHandlerSync? entityHandler,
-    FileSystemEntityExceptionHandlerSync? exceptionHandler}) {
+  Set<String> forEachEntitySync(
+      {String? root,
+      List<String>? roots,
+      Glob? filter,
+      List<Glob>? filters,
+      FileSystemEntityType? type,
+      List<FileSystemEntityType>? types,
+      int flags = followLinks,
+      FileSystemEntityHandlerSync? entityHandler,
+      FileSystemEntityExceptionHandlerSync? exceptionHandler}) {
     final orgRoot = currentDirectory.path;
     final theRoots = _getRoots(root, roots);
     final theFilters = _getFilters(filter, filters);
@@ -140,7 +142,8 @@ extension FileSystemExt on FileSystem {
       for (var theRoot in theRoots) {
         try {
           final curRoot = (theRoot.isEmpty ? orgRoot : theRoot);
-          entities = theFilter.listFileSystemSync(this, root: curRoot, followLinks: isFollowLinks);
+          entities = theFilter.listFileSystemSync(this,
+              root: curRoot, followLinks: isFollowLinks);
         } on Exception catch (e, stackTrace) {
           if (exceptionHandler != null) {
             if (!exceptionHandler(this, null, null, e, stackTrace)) {
@@ -227,7 +230,8 @@ extension FileSystemExt on FileSystem {
 
   /// Get the list of all expected types
   ///
-  Set<FileSystemEntityType> _getTypes(FileSystemEntityType? type, List<FileSystemEntityType>? types) {
+  Set<FileSystemEntityType> _getTypes(
+      FileSystemEntityType? type, List<FileSystemEntityType>? types) {
     var result = <FileSystemEntityType>{};
 
     if (type != null) {

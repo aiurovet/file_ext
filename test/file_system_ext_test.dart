@@ -31,17 +31,17 @@ void main() {
       });
 
       test('forEachEntity - top', () async {
-        var flst = await fs.forEachEntity(root: top, filter:
-          Glob('*.{doc*,tx*,docx}'),
-          flags: FileSystemExt.accumulate
-        );
+        var flst = await fs.forEachEntity(
+            root: top,
+            filter: Glob('*.{doc*,tx*,docx}'),
+            flags: FileSystemExt.accumulate);
         expect(flst.length, 3);
       });
       test('forEachEntitySync - top', () async {
-        var flst = fs.forEachEntitySync(root: top, filter:
-          Glob('*.{doc*,tx*,docx}'),
-          flags: FileSystemExt.accumulate
-        );
+        var flst = fs.forEachEntitySync(
+            root: top,
+            filter: Glob('*.{doc*,tx*,docx}'),
+            flags: FileSystemExt.accumulate);
         expect(flst.length, 3);
       });
     });

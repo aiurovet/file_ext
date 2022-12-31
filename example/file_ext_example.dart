@@ -132,7 +132,7 @@ EXAMPLES:
 ${Options.appName} -d /home/user/Downloads -type f ../Documents/**.{doc,docx} *.txt
 ''');
 
-   exit(1);
+  exit(1);
 }
 
 /// Entry point
@@ -144,54 +144,59 @@ void main(List<String> args) async {
 
   if (opt.isSync) {
     opt.fileSystem.forEachEntitySync(
-      roots: opt.roots,
-      filters: opt.filters,
-      flags: opt.flags,
-      types: opt.types,
-      entityHandler: (fileSystem, entity, stat) {
-        if ((entity == null) || (stat == null)) {
-          return true;
-        }
-        if (opt.isCountOnly) {
-          ++count;
-        } else {
-          var path = fileSystem.path.adjustTrailingSeparator(entity.path, stat.type, isAppend: true);
-          if (stat.type == FileSystemEntityType.link) {
-            path += ' -> ${fileSystem.file(path).resolveSymbolicLinksSync()}';
+        roots: opt.roots,
+        filters: opt.filters,
+        flags: opt.flags,
+        types: opt.types,
+        entityHandler: (fileSystem, entity, stat) {
+          if ((entity == null) || (stat == null)) {
+            return true;
           }
-          opt.logger.out(path);
-        }
-        return true;
-      },
-      exceptionHandler: (fileSystem, entity, stat, exception, stackTrace) {
-        opt.logger.error(exception.toString());
-        return true; // continue
-      });
+          if (opt.isCountOnly) {
+            ++count;
+          } else {
+            var path = fileSystem.path.adjustTrailingSeparator(
+                entity.path, stat.type,
+                isAppend: true);
+            if (stat.type == FileSystemEntityType.link) {
+              path += ' -> ${fileSystem.file(path).resolveSymbolicLinksSync()}';
+            }
+            opt.logger.out(path);
+          }
+          return true;
+        },
+        exceptionHandler: (fileSystem, entity, stat, exception, stackTrace) {
+          opt.logger.error(exception.toString());
+          return true; // continue
+        });
   } else {
     await opt.fileSystem.forEachEntity(
-      roots: opt.roots,
-      filters: opt.filters,
-      flags: opt.flags,
-      types: opt.types,
-      entityHandler: (fileSystem, entity, stat) async {
-        if ((entity == null) || (stat == null)) {
-          return true;
-        }
-        if (opt.isCountOnly) {
-          ++count;
-        } else {
-          var path = opt.fileSystem.path.adjustTrailingSeparator(entity.path, stat.type, isAppend: true);
-          if (stat.type == FileSystemEntityType.link) {
-            path += ' -> ${fileSystem.file(path).resolveSymbolicLinksSync()}';
+        roots: opt.roots,
+        filters: opt.filters,
+        flags: opt.flags,
+        types: opt.types,
+        entityHandler: (fileSystem, entity, stat) async {
+          if ((entity == null) || (stat == null)) {
+            return true;
           }
-          opt.logger.out(path);
-        }
-        return true;
-      },
-      exceptionHandler: (fileSystem, entity, stat, exception, stackTrace) async {
-        opt.logger.error(exception.toString());
-        return true; // continue
-      });
+          if (opt.isCountOnly) {
+            ++count;
+          } else {
+            var path = opt.fileSystem.path.adjustTrailingSeparator(
+                entity.path, stat.type,
+                isAppend: true);
+            if (stat.type == FileSystemEntityType.link) {
+              path += ' -> ${fileSystem.file(path).resolveSymbolicLinksSync()}';
+            }
+            opt.logger.out(path);
+          }
+          return true;
+        },
+        exceptionHandler:
+            (fileSystem, entity, stat, exception, stackTrace) async {
+          opt.logger.error(exception.toString());
+          return true; // continue
+        });
   }
 
   if (opt.isCountOnly) {

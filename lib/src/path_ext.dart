@@ -115,7 +115,8 @@ extension PathExt on p.Context {
     // If no drive is present, then take it from the current directory
     //
     if (path.startsWith(separator)) {
-      if (path[1] == separator) { // UNC path?
+      if (path[1] == separator) {
+        // UNC path?
         return path;
       }
       final curDirName = current;

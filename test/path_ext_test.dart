@@ -65,7 +65,8 @@ void main() {
       test('dir - drive (win) - add', () {
         if (fs.style == FileSystemStyle.windows) {
           expect(
-              fs.path.adjustTrailingSeparator(r'c:', FileSystemEntityType.directory,
+              fs.path.adjustTrailingSeparator(
+                  r'c:', FileSystemEntityType.directory,
                   isAppend: true),
               r'c:.\');
         }
@@ -73,14 +74,16 @@ void main() {
       test('dir - drive (win) - remove', () {
         if (fs.style == FileSystemStyle.windows) {
           expect(
-              fs.path.adjustTrailingSeparator(r'c:', FileSystemEntityType.directory,
+              fs.path.adjustTrailingSeparator(
+                  r'c:', FileSystemEntityType.directory,
                   isAppend: false),
               r'c:');
         }
       });
       test('dir - abc - add', () {
         expect(
-            fs.path.adjustTrailingSeparator('abc', FileSystemEntityType.directory,
+            fs.path.adjustTrailingSeparator(
+                'abc', FileSystemEntityType.directory,
                 isAppend: true),
             r'abc' + sep);
       });
@@ -113,7 +116,8 @@ void main() {
       });
       test('file - remove', () {
         expect(
-            fs.path.adjustTrailingSeparator(r'abc' + sep, FileSystemEntityType.file,
+            fs.path.adjustTrailingSeparator(
+                r'abc' + sep, FileSystemEntityType.file,
                 isAppend: false),
             r'abc' + sep);
       });
@@ -127,14 +131,18 @@ void main() {
         expect(fs.path.equals(fs.path.getFullPath('.'), fs.path.current), true);
       });
       test('current sub-dir', () {
-        expect(fs.path.equals(fs.path.getFullPath('x${sep}a.txt'), '${fs.path.current}${sep}x${sep}a.txt'), true);
+        expect(
+            fs.path.equals(fs.path.getFullPath('x${sep}a.txt'),
+                '${fs.path.current}${sep}x${sep}a.txt'),
+            true);
       });
       test('parent dir', () {
         final full = fs.path.getFullPath('..');
         expect(fs.path.equals(full, fs.path.dirname(fs.path.current)), true);
       });
       test('root/other', () {
-        final full = fs.path.getFullPath('a$sep..$sep..$sep..$sep..$sep..${sep}bc');
+        final full =
+            fs.path.getFullPath('a$sep..$sep..$sep..$sep..$sep..${sep}bc');
         expect(fs.path.equals(full, '${sep}bc'), true);
       });
       test('absolute', () {
@@ -152,7 +160,8 @@ void main() {
       test('getFullPath - a mix of separators', () {
         final full = fs.path.getFullPath(r'/A\b/C\d');
         expect(
-            fs.path.equals(full, (fs.path.isPosix ? r'/A\b/C\d' : r'\A\b\C\d')), true);
+            fs.path.equals(full, (fs.path.isPosix ? r'/A\b/C\d' : r'\A\b\C\d')),
+            true);
       });
       test('getFullPath - unicode characters', () {
         final orig = '$sepСаша.Текст';

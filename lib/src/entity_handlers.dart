@@ -8,14 +8,22 @@ import 'package:file/file.dart';
 /// Returns true to continue the loop or false to rethrow
 ///
 typedef FileSystemEntityExceptionHandler = Future<bool> Function(
-    FileSystem fileSystem, FileSystemEntity? entity, FileStat? stat, Exception exception, StackTrace stackTrace);
+    FileSystem fileSystem,
+    FileSystemEntity? entity,
+    FileStat? stat,
+    Exception exception,
+    StackTrace stackTrace);
 
 /// A user-defined error handler (blocking)\
 /// \
 /// Returns true to continue the loop or false to rethrow
 ///
 typedef FileSystemEntityExceptionHandlerSync = bool Function(
-    FileSystem fileSystem, FileSystemEntity? entity, FileStat? stat, Exception exception, StackTrace stackTrace);
+    FileSystem fileSystem,
+    FileSystemEntity? entity,
+    FileStat? stat,
+    Exception exception,
+    StackTrace stackTrace);
 
 /// A type for async callback function used by `FileSystemExt.list(...)`\
 /// or `FileSystemExt.listSync(...)` for every found filesystem entity\

@@ -33,7 +33,8 @@ extension StdinExt on Stdin {
   /// handler on each.\
   /// Returns the number of lines processed
   ///
-  Future<int> forEachLine({StdinLineHandler? handler, StdinLineHandlerSync? handlerSync}) async {
+  Future<int> forEachLine(
+      {StdinLineHandler? handler, StdinLineHandlerSync? handlerSync}) async {
     var count = 0;
     var lines = getStreamQueue();
 
@@ -119,7 +120,7 @@ extension StdinExt on Stdin {
   }
 
   /// Returns stream queue based on [stdin]
-  /// 
+  ///
   StreamQueue getStreamQueue() =>
       StreamQueue(LineSplitter().bind(Utf8Decoder().bind(this)));
 }
