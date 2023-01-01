@@ -90,23 +90,23 @@ void main() {
       test('dir - abc - remove', () {
         expect(
             fs.path.adjustTrailingSeparator(
-                'abc' + sep, FileSystemEntityType.directory,
+                'abc$sep', FileSystemEntityType.directory,
                 isAppend: false),
             r'abc');
       });
       test('dir - ab/c - add', () {
         expect(
             fs.path.adjustTrailingSeparator(
-                'ab' + sep + 'c', FileSystemEntityType.directory,
+                'ab${sep}c', FileSystemEntityType.directory,
                 isAppend: true),
-            r'ab' + sep + 'c' + sep);
+            'ab${sep}c$sep');
       });
       test('dir - ab/c - remove', () {
         expect(
             fs.path.adjustTrailingSeparator(
-                'ab' + sep + 'c', FileSystemEntityType.directory,
+                'ab${sep}c', FileSystemEntityType.directory,
                 isAppend: false),
-            r'ab' + sep + 'c');
+            'ab${sep}c');
       });
       test('file - add', () {
         expect(
@@ -227,7 +227,7 @@ void main() {
       });
       test('general', () {
         expect(fs.path.toPosix(r'a\b/c.def'),
-            'a' + (fs.path.isPosix ? r'\' : '/') + 'b/c.def');
+            'a${(fs.path.isPosix ? r'\' : '/')}b/c.def');
       });
     });
   });
