@@ -1,7 +1,10 @@
 // Copyright (c) 2022, Alexander Iurovetski
 // All rights reserved under MIT license (see LICENSE file)
 
+import 'dart:io';
+
 import 'package:file/file.dart';
+import 'package:file/local.dart';
 import 'package:file_ext/file_ext.dart';
 import 'package:glob/glob.dart';
 import 'package:test/test.dart';
@@ -48,7 +51,6 @@ void createFileSync(FileSystem fs, String dirName, String fileName) {
   }
 }
 
-
 /// A helper to create all files in memory and check success (non-blocking)
 ///
 void createFilesSync(FileSystem fs, String top, String sub1, String sub2) {
@@ -67,6 +69,8 @@ void createFilesSync(FileSystem fs, String top, String sub1, String sub2) {
 /// A suite of tests for FileSystemExt
 ///
 void main() {
+  var lfs = LocalFileSystem();
+
   MemoryFileSystemExt.forEach((fs) {
     final top = fs.path.absolute('dir');
     final sub1 = fs.path.join(top, 'sub1');
@@ -80,7 +84,7 @@ void main() {
             root: top,
             filter: Glob('*.{doc*,tx*,docx}'),
             flags: FileSystemExt.accumulate);
-        expect(flst.length, fs.path.isPosix ? 3 : 0);
+        expect(flst.length, fs.path.isPosix || !lfs.path.isPosix ? 3 : 0);
       });
       test('forEachEntitySync - top', () {
         createFilesSync(fs, top, sub1, sub2);
@@ -89,7 +93,7 @@ void main() {
             root: top,
             filter: Glob('*.{doc*,tx*,docx}'),
             flags: FileSystemExt.accumulate);
-        expect(flst.length, fs.path.isPosix ? 3 : 0);
+        expect(flst.length, fs.path.isPosix || !lfs.path.isPosix ? 3 : 0);
       });
     });
   });
