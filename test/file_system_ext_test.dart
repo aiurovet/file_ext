@@ -1,8 +1,6 @@
 // Copyright (c) 2022, Alexander Iurovetski
 // All rights reserved under MIT license (see LICENSE file)
 
-import 'dart:io';
-
 import 'package:file/file.dart';
 import 'package:file/local.dart';
 import 'package:file_ext/file_ext.dart';
