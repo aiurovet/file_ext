@@ -202,7 +202,7 @@ extension FileSystemExt on FileSystem {
     }
 
     if (result.isEmpty) {
-      result.add(Glob(PathExt.anyPattern(false)));
+      result.add(Glob(PathExt.anyPattern));
     }
 
     return result;

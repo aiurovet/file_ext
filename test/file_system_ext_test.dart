@@ -22,18 +22,19 @@ Future<void> createFile(FileSystem fs, String dirName, String fileName) async {
 
 /// A helper to create all files in memory and check success (non-blocking)
 ///
-Future<void> createFiles(FileSystem fs, String top, String sub1, String sub2) async {
-    await createFile(fs, top, 'file11.doc');
-    await createFile(fs, top, 'file12.txt');
-    await createFile(fs, top, 'file13.docx');
+Future<void> createFiles(
+    FileSystem fs, String top, String sub1, String sub2) async {
+  await createFile(fs, top, 'file11.doc');
+  await createFile(fs, top, 'file12.txt');
+  await createFile(fs, top, 'file13.docx');
 
-    await createFile(fs, sub1, 'file21.doc');
-    await createFile(fs, sub1, 'file22.txt');
-    await createFile(fs, sub1, 'file23.docx');
+  await createFile(fs, sub1, 'file21.doc');
+  await createFile(fs, sub1, 'file22.txt');
+  await createFile(fs, sub1, 'file23.docx');
 
-    await createFile(fs, sub2, 'file31.doc');
-    await createFile(fs, sub2, 'file32.txt');
-    await createFile(fs, sub1, 'file33.docx');
+  await createFile(fs, sub2, 'file31.doc');
+  await createFile(fs, sub2, 'file32.txt');
+  await createFile(fs, sub1, 'file33.docx');
 }
 
 /// A helper to create file in memory and check success (blocking)
@@ -52,18 +53,19 @@ void createFileSync(FileSystem fs, String dirName, String fileName) {
 /// A helper to create all files in memory and check success (non-blocking)
 ///
 void createFilesSync(FileSystem fs, String top, String sub1, String sub2) {
-    createFileSync(fs, top, 'file11.doc');
-    createFileSync(fs, top, 'file12.txt');
-    createFileSync(fs, top, 'file13.docx');
+  createFileSync(fs, top, 'file11.doc');
+  createFileSync(fs, top, 'file12.txt');
+  createFileSync(fs, top, 'file13.docx');
 
-    createFileSync(fs, sub1, 'file21.doc');
-    createFileSync(fs, sub1, 'file22.txt');
-    createFileSync(fs, sub1, 'file23.docx');
+  createFileSync(fs, sub1, 'file21.doc');
+  createFileSync(fs, sub1, 'file22.txt');
+  createFileSync(fs, sub1, 'file23.docx');
 
-    createFileSync(fs, sub2, 'file31.doc');
-    createFileSync(fs, sub2, 'file32.txt');
-    createFileSync(fs, sub1, 'file33.docx');
+  createFileSync(fs, sub2, 'file31.doc');
+  createFileSync(fs, sub2, 'file32.txt');
+  createFileSync(fs, sub1, 'file33.docx');
 }
+
 /// A suite of tests for FileSystemExt
 ///
 void main() {

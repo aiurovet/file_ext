@@ -2,11 +2,20 @@
 // All rights reserved under MIT license (see LICENSE file)
 
 import 'package:file/file.dart';
+import 'package:glob/glob.dart';
 import 'package:path/path.dart' as p;
 
 /// A helper extension for Path API
 ///
 extension PathExt on p.Context {
+  /// A pattern to list any file system element (non-recursive)
+  ///
+  static const anyPattern = '*';
+
+  /// A pattern to list any file system element (recursive)
+  ///
+  static const anyPatternRecursive = '**';
+
   /// Alt directory separator (differs from separator for Windows-style FS only)
   ///
   static const altSeparator = separatorPosix;
@@ -32,6 +41,11 @@ extension PathExt on p.Context {
   ///
   static final RegExp _hiddenWindowsRE =
       RegExp(r'^\.+([^\.\/\\]|$)|[\/\\]\.+[^\.\/\\]');
+
+  /// A pattern to locate a combination of glob characters which means recursive directory scan
+  ///
+  static final _isRecursiveGlobPatternRE =
+      RegExp(r'\*\*|[\*\?][\/\\]', caseSensitive: false);
 
   /// Check whether the file system is POSIX-compliant
   ///
@@ -84,10 +98,6 @@ extension PathExt on p.Context {
     return (isAppend ? path + separator : path);
   }
 
-  /// A pattern to list any file system element
-  ///
-  static String anyPattern(bool isRecursive) => (isRecursive ? '**' : '*');
-
   /// Convert [path] to the fully qualified path\
   /// \
   /// For POSIX, it calls `canonicalize()`\
@@ -112,19 +122,21 @@ extension PathExt on p.Context {
     //
     var absPath = path;
 
-    // If no drive is present, then take it from the current directory
-    //
     if (path.startsWith(separator)) {
       if (path[1] == separator) {
-        // UNC path?
+        // UNC path should be returned as is
         return path;
       }
+      // Path is absolute, but no drive found, so take that from the current directory
       final curDirName = current;
       absPath = curDirName.substring(0, curDirName.indexOf(separator)) + path;
     } else if (!path.contains(PathExt.driveSeparator)) {
+      // No drive found, and path is relative, so prepend it with the current directory
       absPath = join(current, path);
     }
 
+    // Resolve . and ..
+    //
     return normalize(absPath);
   }
 
@@ -152,6 +164,20 @@ extension PathExt on p.Context {
     }
     return (path.contains(altSeparator) || path.contains(driveSeparator));
   }
+
+  /// Check whether the file system is POSIX-compliant
+  ///
+  bool isRecursive(String? path) =>
+      ((path != null) && _isRecursiveGlobPatternRE.hasMatch(path));
+
+  /// Convert [pattern] string into a proper glob object considering the required
+  /// file system [fileSystem] and possible extra flags [caseSensitive] and [recursive]
+  ///
+  Glob toGlob(String? pattern, {bool? caseSensitive, bool? recursive}) => Glob(
+      ((pattern == null) || pattern.isEmpty ? PathExt.anyPattern : pattern),
+      context: this,
+      caseSensitive: caseSensitive ?? equals('A', 'a'),
+      recursive: recursive ?? isRecursive(pattern));
 
   /// Replace every [separator] in [path] with [separatorPosix]
   /// This is the opposite to `adjust(...)`

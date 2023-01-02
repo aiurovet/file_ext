@@ -10,19 +10,19 @@ void main() {
   MemoryFileSystemExt.forEach((fs) {
     final styleName = fs.getStyleName();
 
-    group('PathExt - $styleName -', () {
-      test('styleName', () {
-        expect(styleName, fs.path.isPosix ? 'Posix' : 'Windows');
+    group('MemoryFileSystemExt - $styleName -', () {
+      test('getStyleName', () {
+        expect(fs.getStyleName(), fs.path.isPosix ? 'posix' : 'windows');
       });
     });
   });
-  test('PathExt - forEach', () {
+  test('MemoryFileSystemExt - forEach', () {
     var styleNames = <String>[];
 
     MemoryFileSystemExt.forEach((mfs) {
       styleNames.add(mfs.getStyleName());
     });
 
-    expect(styleNames, ['Posix', 'Windows']);
+    expect(styleNames, ['posix', 'windows']);
   });
 }

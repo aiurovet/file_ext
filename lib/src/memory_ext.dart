@@ -19,6 +19,10 @@ extension MemoryFileSystemExt on MemoryFileSystem {
     MemoryFileSystem(style: FileSystemStyle.windows),
   ];
 
+  /// Private: regular expression to get name
+  ///
+  static final _styleNameRE = RegExp('^.*_([^\'"]+).*');
+
   /// The way to perform processing for each in-memory file system
   ///
   static void forEach(MemoryFileSystemHandler handler) {
@@ -27,18 +31,9 @@ extension MemoryFileSystemExt on MemoryFileSystem {
     }
   }
 
-  /// Get short style name
+  /// Get human-readable name
   ///
-  String getStyleName() {
-    final name = style.toString();
-    final start = name.lastIndexOf('_');
-    var end = name.length;
-    final lastCode = name[end - 1].toLowerCase().codeUnitAt(0);
-
-    if ((lastCode < 0x60 /* 'a' */) || (lastCode > 0x7A /* 'z' */)) {
-      --end;
-    }
-
-    return name.substring(start + 1, end);
-  }
+  String getStyleName() => style
+      .toString()
+      .replaceAllMapped(_styleNameRE, (m) => m.group(1)!.toLowerCase());
 }

@@ -230,5 +230,6 @@ void main() {
             'a${(fs.path.isPosix ? r'\' : '/')}b/c.def');
       });
     });
+    group('PathExt - toGlob - $styleName -', () {});
   });
 }
