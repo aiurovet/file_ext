@@ -1,5 +1,5 @@
 name: file_ext
-description: Extension methods for filesystem-related manipulations.
+description: Helper methods for filesystem-, path- and stdin-related manipulations.
 version: 0.2.0
 homepage: https://github.com/aiurovet/file_ext/
 

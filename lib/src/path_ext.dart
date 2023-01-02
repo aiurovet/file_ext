@@ -72,6 +72,8 @@ extension PathExt on p.Context {
     return path.replaceAll(altSeparator, separator);
   }
 
+  /// Append or remove trailing path separator depending on needs
+  ///
   String adjustTrailingSeparator(String? path, FileSystemEntityType type,
       {bool isAppend = false}) {
     if ((path == null) || path.isEmpty) {
