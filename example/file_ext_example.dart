@@ -148,7 +148,7 @@ void main(List<String> args) async {
         filters: opt.filters,
         flags: opt.flags,
         types: opt.types,
-        entityHandler: (fileSystem, entity, stat) {
+        onEntity: (fileSystem, entity, stat) {
           if ((entity == null) || (stat == null)) {
             return true;
           }
@@ -165,7 +165,7 @@ void main(List<String> args) async {
           }
           return true;
         },
-        exceptionHandler: (fileSystem, entity, stat, exception, stackTrace) {
+        onException: (fileSystem, entity, stat, exception, stackTrace) {
           opt.logger.error(exception.toString());
           return true; // continue
         });
@@ -175,7 +175,7 @@ void main(List<String> args) async {
         filters: opt.filters,
         flags: opt.flags,
         types: opt.types,
-        entityHandler: (fileSystem, entity, stat) async {
+        onEntity: (fileSystem, entity, stat) async {
           if ((entity == null) || (stat == null)) {
             return true;
           }
@@ -192,7 +192,7 @@ void main(List<String> args) async {
           }
           return true;
         },
-        exceptionHandler:
+        onException:
             (fileSystem, entity, stat, exception, stackTrace) async {
           opt.logger.error(exception.toString());
           return true; // continue

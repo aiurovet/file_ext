@@ -1,3 +1,10 @@
+## 0.3.0
+
+- Breaking: removed sync event handlers for FileSystemExt's forEachEntity() and forEachEntitySync() and made async ones to return FutureOr
+- Breaking: renamed event handlers for FileSystemExt's forEachEntity() and forEachEntitySync()
+- Breaking: StdinExt's forEachLine() and forEachLineSync() handlers get another argument: lineNo
+- Bugfix: StdinExt's forEachLine() and forEachLineSync() were always returning 0 as line count
+
 ## 0.2.1
 
 - Improved documentation
