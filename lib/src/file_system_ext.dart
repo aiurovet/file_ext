@@ -44,7 +44,8 @@ extension FileSystemExt on FileSystem {
     var isHiddenAllowed = ((flags & allowHidden) != 0);
 
     final isOnEntitySync = (onEntity is FileSystemEntityHandlerSync);
-    final isOnExceptionSync = (onException is FileSystemEntityExceptionHandlerSync);
+    final isOnExceptionSync =
+        (onException is FileSystemEntityExceptionHandlerSync);
 
     Stream<FileSystemEntity> entities;
     FileStat? stat;
@@ -61,8 +62,7 @@ extension FileSystemExt on FileSystem {
               if (!onException(this, null, null, e, stackTrace)) {
                 rethrow;
               }
-            }
-            else if (!(await onException(this, null, null, e, stackTrace))) {
+            } else if (!(await onException(this, null, null, e, stackTrace))) {
               rethrow;
             }
           }
@@ -85,8 +85,7 @@ extension FileSystemExt on FileSystem {
                 if (!onEntity(this, entity, stat)) {
                   break;
                 }
-              }
-              else if (!await onEntity(this, entity, stat)) {
+              } else if (!await onEntity(this, entity, stat)) {
                 break;
               }
             }
@@ -99,8 +98,8 @@ extension FileSystemExt on FileSystem {
                 if (!onException(this, entity, stat, e, stackTrace)) {
                   rethrow;
                 }
-              }
-              else if (!(await onException(this, entity, stat, e, stackTrace))) {
+              } else if (!(await onException(
+                  this, entity, stat, e, stackTrace))) {
                 rethrow;
               }
             }

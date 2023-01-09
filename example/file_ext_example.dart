@@ -192,8 +192,7 @@ void main(List<String> args) async {
           }
           return true;
         },
-        onException:
-            (fileSystem, entity, stat, exception, stackTrace) async {
+        onException: (fileSystem, entity, stat, exception, stackTrace) async {
           opt.logger.error(exception.toString());
           return true; // continue
         });
