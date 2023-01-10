@@ -12,8 +12,6 @@
       "args": [ "-a" ]},
     { "name": "All dirs & sub-dirs of abs", "request": "launch", "type": "dart", "program": "example/file_ext_example.dart",
       "args": [ "/bin/X11/**" ]},
-    { "name": "All files except docos", "request": "launch", "type": "dart", "program": "example/file_ext_example.dart",
-      "args": [ "-not", "*.{md,yml,yaml}" ]},
     { "name": "Help", "request": "launch", "type": "dart", "program": "example/file_ext_example.dart",
       "args": [ "-?" ]},
     { "name": "Dart (recursive)", "request": "launch", "type": "dart", "program": "example/file_ext_example.dart",

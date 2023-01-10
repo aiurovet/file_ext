@@ -19,7 +19,7 @@ Asynchronous and synchronous extension methods to:
 The same can be found under the subdirectory `example` of the code repository
 
 ```dart
-// Copyright (c) 2022, Alexander Iurovetski
+// Copyright (c) 2022-2023, Alexander Iurovetski
 // All rights reserved under MIT license (see LICENSE file)
 
 import 'dart:io';
@@ -78,8 +78,6 @@ class Options {
   Options(this.fileSystem);
 
   void parse(List<String> args) {
-    logger.info('\nArgs: $args\n');
-
     var optDefs = '''
       |?,h,help|q,quiet|v,verbose|a,all|d,dir::
       |c,count|L,follow|s,sync|t,type:|::
@@ -146,17 +144,16 @@ OPTIONS:
                 d - directory
                 f - file
                 l - link
-
 ARGUMENTS:
 
 One or more glob patterns
 
 EXAMPLES:
 
-${Options.appName} -d /home/user/Downloads -type f ../Documents/**.docx *.txt
+${Options.appName} -d /home/user/Downloads -type f ../Documents/**.{doc,docx} *.txt
 ''');
 
-   exit(1);
+  exit(1);
 }
 
 /// Entry point
@@ -168,54 +165,58 @@ void main(List<String> args) async {
 
   if (opt.isSync) {
     opt.fileSystem.forEachEntitySync(
-      roots: opt.roots,
-      filters: opt.filters,
-      flags: opt.flags,
-      types: opt.types,
-      entityHandler: (fileSystem, entity, stat) {
-        if ((entity == null) || (stat == null)) {
-          return true;
-        }
-        if (opt.isCountOnly) {
-          ++count;
-        } else {
-          var path = fileSystem.path.adjustTrailingSeparator(entity.path, stat.type, isAppend: true);
-          if (stat.type == FileSystemEntityType.link) {
-            path += ' -> ${fileSystem.file(path).resolveSymbolicLinksSync()}';
+        roots: opt.roots,
+        filters: opt.filters,
+        flags: opt.flags,
+        types: opt.types,
+        onEntity: (fileSystem, entity, stat) {
+          if ((entity == null) || (stat == null)) {
+            return true;
           }
-          opt.logger.out(path);
-        }
-        return true;
-      },
-      exceptionHandler: (fileSystem, entity, stat, exception, stackTrace) {
-        opt.logger.error(exception.toString());
-        return true; // continue
-      });
+          if (opt.isCountOnly) {
+            ++count;
+          } else {
+            var path = fileSystem.path.adjustTrailingSeparator(
+                entity.path, stat.type,
+                isAppend: true);
+            if (stat.type == FileSystemEntityType.link) {
+              path += ' -> ${fileSystem.file(path).resolveSymbolicLinksSync()}';
+            }
+            opt.logger.out(path);
+          }
+          return true;
+        },
+        onException: (fileSystem, entity, stat, exception, stackTrace) {
+          opt.logger.error(exception.toString());
+          return true; // continue
+        });
   } else {
     await opt.fileSystem.forEachEntity(
-      roots: opt.roots,
-      filters: opt.filters,
-      flags: opt.flags,
-      types: opt.types,
-      entityHandler: (fileSystem, entity, stat) async {
-        if ((entity == null) || (stat == null)) {
-          return true;
-        }
-        if (opt.isCountOnly) {
-          ++count;
-        } else {
-          var path = opt.fileSystem.path.adjustTrailingSeparator(entity.path, stat.type, isAppend: true);
-          if (stat.type == FileSystemEntityType.link) {
-            path += ' -> ${fileSystem.file(path).resolveSymbolicLinksSync()}';
+        roots: opt.roots,
+        filters: opt.filters,
+        flags: opt.flags,
+        types: opt.types,
+        onEntity: (fileSystem, entity, stat) async {
+          if ((entity == null) || (stat == null)) {
+            return true;
           }
-          opt.logger.out(path);
-        }
-        return true;
-      },
-      exceptionHandler: (fileSystem, entity, stat, exception, stackTrace) async {
-        opt.logger.error(exception.toString());
-        return true; // continue
-      });
+          if (opt.isCountOnly) {
+            ++count;
+          } else {
+            var path = opt.fileSystem.path.adjustTrailingSeparator(
+                entity.path, stat.type,
+                isAppend: true);
+            if (stat.type == FileSystemEntityType.link) {
+              path += ' -> ${fileSystem.file(path).resolveSymbolicLinksSync()}';
+            }
+            opt.logger.out(path);
+          }
+          return true;
+        },
+        onException: (fileSystem, entity, stat, exception, stackTrace) async {
+          opt.logger.error(exception.toString());
+          return true; // continue
+        });
   }
 
   if (opt.isCountOnly) {

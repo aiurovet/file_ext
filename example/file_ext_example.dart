@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Alexander Iurovetski
+// Copyright (c) 2022-2023, Alexander Iurovetski
 // All rights reserved under MIT license (see LICENSE file)
 
 import 'dart:io';
@@ -59,7 +59,7 @@ class Options {
   void parse(List<String> args) {
     var optDefs = '''
       |?,h,help|q,quiet|v,verbose|a,all|d,dir::
-      |c,count|L,follow|s,sync|t,type:|::
+      |c,count|L,follow|s,sync|t,type:|::?
     ''';
 
     var opts = parseArgs(optDefs, args);

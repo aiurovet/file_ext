@@ -1,3 +1,7 @@
+## 0.3.1
+
+- Added year 2023 to copyright
+
 ## 0.3.0
 
 - Breaking: removed sync event handlers for FileSystemExt's forEachEntity() and forEachEntitySync() and made async ones to return FutureOr
