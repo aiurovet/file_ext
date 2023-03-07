@@ -9,4 +9,3 @@ export 'src/entity_handlers.dart';
 export 'src/file_system_ext.dart';
 export 'src/memory_ext.dart';
 export 'src/path_ext.dart';
-export 'src/stdin_ext.dart';

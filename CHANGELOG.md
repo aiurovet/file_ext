@@ -1,3 +1,7 @@
+## 0.4.0
+
+- Removed `stdin_ext`: use `UtfStdin` from the `utf_ext` package instead
+
 ## 0.3.1
 
 - Added year 2023 to copyright
