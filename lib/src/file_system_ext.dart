@@ -62,7 +62,8 @@ extension FileSystemExt on FileSystem {
               if (onException(this, null, null, e, stackTrace).isStop) {
                 rethrow;
               }
-            } else if ((await onException(this, null, null, e, stackTrace)).isStop) {
+            } else if ((await onException(this, null, null, e, stackTrace))
+                .isStop) {
               rethrow;
             }
           }
@@ -98,7 +99,8 @@ extension FileSystemExt on FileSystem {
                 if (onException(this, entity, stat, e, stackTrace).isStop) {
                   rethrow;
                 }
-              } else if ((await onException(this, entity, stat, e, stackTrace)).isStop) {
+              } else if ((await onException(this, entity, stat, e, stackTrace))
+                  .isStop) {
                 rethrow;
               }
             }
