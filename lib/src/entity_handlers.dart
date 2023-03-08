@@ -4,12 +4,13 @@
 import 'dart:async';
 
 import 'package:file/file.dart';
+import 'package:loop_visitor/loop_visitor.dart';
 
 /// A user-defined error handler (non-blocking)\
 /// \
 /// Returns true to continue the loop or false to rethrow
 ///
-typedef FileSystemEntityExceptionHandler = FutureOr<bool> Function(
+typedef FileSystemEntityExceptionHandler = FutureOr<VisitResult> Function(
     FileSystem fileSystem,
     FileSystemEntity? entity,
     FileStat? stat,
@@ -20,7 +21,7 @@ typedef FileSystemEntityExceptionHandler = FutureOr<bool> Function(
 /// \
 /// Returns true to continue the loop or false to rethrow
 ///
-typedef FileSystemEntityExceptionHandlerSync = bool Function(
+typedef FileSystemEntityExceptionHandlerSync = VisitResult Function(
     FileSystem fileSystem,
     FileSystemEntity? entity,
     FileStat? stat,
@@ -32,7 +33,7 @@ typedef FileSystemEntityExceptionHandlerSync = bool Function(
 /// \
 /// Returns true to continue the loop or false to stop
 ///
-typedef FileSystemEntityHandler = FutureOr<bool> Function(
+typedef FileSystemEntityHandler = FutureOr<VisitResult> Function(
     FileSystem fileSystem, FileSystemEntity? entity, FileStat? stat);
 
 /// A type for sync callback function used by `FileSystemExt.listSync(...)`
@@ -40,5 +41,5 @@ typedef FileSystemEntityHandler = FutureOr<bool> Function(
 /// \
 /// Returns true to continue the loop or false to stop
 ///
-typedef FileSystemEntityHandlerSync = bool Function(
+typedef FileSystemEntityHandlerSync = VisitResult Function(
     FileSystem fileSystem, FileSystemEntity? entity, FileStat? stat);

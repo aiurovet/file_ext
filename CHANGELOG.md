@@ -1,3 +1,7 @@
+## 0.5.0
+
+- Changed the return type of callbacks: `bool` to `VisitResult`
+
 ## 0.4.0
 
 - Removed `stdin_ext`: use `UtfStdin` from the `utf_ext` package instead

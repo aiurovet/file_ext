@@ -59,10 +59,10 @@ extension FileSystemExt on FileSystem {
         } on Exception catch (e, stackTrace) {
           if (onException != null) {
             if (isOnExceptionSync) {
-              if (!onException(this, null, null, e, stackTrace)) {
+              if (onException(this, null, null, e, stackTrace).isStop) {
                 rethrow;
               }
-            } else if (!(await onException(this, null, null, e, stackTrace))) {
+            } else if ((await onException(this, null, null, e, stackTrace)).isStop) {
               rethrow;
             }
           }
@@ -82,10 +82,10 @@ extension FileSystemExt on FileSystem {
             }
             if (onEntity != null) {
               if (isOnEntitySync) {
-                if (!onEntity(this, entity, stat)) {
+                if (onEntity(this, entity, stat).isStop) {
                   break;
                 }
-              } else if (!await onEntity(this, entity, stat)) {
+              } else if ((await onEntity(this, entity, stat)).isStop) {
                 break;
               }
             }
@@ -95,11 +95,10 @@ extension FileSystemExt on FileSystem {
           } on Exception catch (e, stackTrace) {
             if (onException != null) {
               if (isOnExceptionSync) {
-                if (!onException(this, entity, stat, e, stackTrace)) {
+                if (onException(this, entity, stat, e, stackTrace).isStop) {
                   rethrow;
                 }
-              } else if (!(await onException(
-                  this, entity, stat, e, stackTrace))) {
+              } else if ((await onException(this, entity, stat, e, stackTrace)).isStop) {
                 rethrow;
               }
             }
@@ -145,7 +144,7 @@ extension FileSystemExt on FileSystem {
               root: curRoot, followLinks: isFollowLinks);
         } on Exception catch (e, stackTrace) {
           if (onException != null) {
-            if (!onException(this, null, null, e, stackTrace)) {
+            if (onException(this, null, null, e, stackTrace).isStop) {
               rethrow;
             }
           }
@@ -165,7 +164,7 @@ extension FileSystemExt on FileSystem {
             }
 
             if (onEntity != null) {
-              if (!onEntity(this, entity, stat)) {
+              if (onEntity(this, entity, stat).isStop) {
                 break;
               }
             }
@@ -175,7 +174,7 @@ extension FileSystemExt on FileSystem {
             }
           } on Exception catch (e, stackTrace) {
             if (onException != null) {
-              if (!onException(this, entity, stat, e, stackTrace)) {
+              if (onException(this, entity, stat, e, stackTrace).isStop) {
                 rethrow;
               }
             }

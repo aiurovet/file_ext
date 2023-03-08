@@ -8,6 +8,7 @@ import 'package:file/local.dart';
 import 'package:file_ext/file_ext.dart';
 import 'package:glob/glob.dart';
 import 'package:intl/intl.dart';
+import 'package:loop_visitor/loop_visitor.dart';
 import 'package:parse_args/parse_args.dart';
 import 'package:thin_logger/thin_logger.dart';
 
@@ -150,7 +151,7 @@ void main(List<String> args) async {
         types: opt.types,
         onEntity: (fileSystem, entity, stat) {
           if ((entity == null) || (stat == null)) {
-            return true;
+            return VisitResult.take; // continue
           }
           if (opt.isCountOnly) {
             ++count;
@@ -163,11 +164,11 @@ void main(List<String> args) async {
             }
             opt.logger.out(path);
           }
-          return true;
+          return VisitResult.take;
         },
         onException: (fileSystem, entity, stat, exception, stackTrace) {
           opt.logger.error(exception.toString());
-          return true; // continue
+          return VisitResult.take; // continue
         });
   } else {
     await opt.fileSystem.forEachEntity(
@@ -177,7 +178,7 @@ void main(List<String> args) async {
         types: opt.types,
         onEntity: (fileSystem, entity, stat) async {
           if ((entity == null) || (stat == null)) {
-            return true;
+            return VisitResult.take; // continue
           }
           if (opt.isCountOnly) {
             ++count;
@@ -190,11 +191,11 @@ void main(List<String> args) async {
             }
             opt.logger.out(path);
           }
-          return true;
+          return VisitResult.take; // continue
         },
         onException: (fileSystem, entity, stat, exception, stackTrace) async {
           opt.logger.error(exception.toString());
-          return true; // continue
+          return VisitResult.take; // continue
         });
   }
 
