@@ -79,7 +79,7 @@ class Options {
       flags |= FileSystemExt.followLinks;
     }
 
-    if (!opts.isSet('a')) {
+    if (opts.isSet('a')) {
       flags |= FileSystemExt.allowHidden;
     }
 

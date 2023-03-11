@@ -1,4 +1,8 @@
-# 0.6.0
+## 0.6.1
+
+- Fixed example, simplified readme
+
+## 0.6.0
 
 - Added `PathExt.hasWildcards(...)`
 - Bugfixes for `PathExt.isRecursive(...)`:
