@@ -1,3 +1,10 @@
+# 0.6.0
+
+- Added `PathExt.hasWildcards(...)`
+- Bugfixes for `PathExt.isRecursive(...)`:
+  - directory part may contain any wildcard, not only `*` or `?`
+  - if directory part contains a wildcard, then directory separator is not necessarily the next char
+
 ## 0.5.0
 
 - Changed the return type of callbacks: `bool` to `VisitResult`

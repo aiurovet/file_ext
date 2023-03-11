@@ -28,34 +28,40 @@ extension PathExt on p.Context {
   ///
   static const separatorWindows = r'\';
 
-  /// A separator between the drive name and the rest of the path
+  /// Separator between the drive name and the rest of the path
   /// (relevant to Windows only)
   ///
   static final driveSeparator = r':';
 
-  /// A regexp to filter hidden files (POSIX)
+  /// RegExp to check whether a pattern contains wildcards or not
+  ///
+  static final _hasWildcardsRE =
+      RegExp(r'[\*\?\[\]\{\}]', caseSensitive: false);
+
+  /// RegExp to filter hidden files (POSIX)
   ///
   static final RegExp _hiddenPosixRE = RegExp(r'^\.+([^\.\/]|$)|\/\.+[^\.\/]');
 
-  /// A regexp to filter hidden files (Windows)
+  /// RegExp to filter hidden files (Windows)
   ///
   static final RegExp _hiddenWindowsRE =
       RegExp(r'^\.+([^\.\/\\]|$)|[\/\\]\.+[^\.\/\\]');
-
-  /// A pattern to locate a combination of glob characters which means recursive directory scan
-  ///
-  static final _isRecursiveGlobPatternRE =
-      RegExp(r'\*\*|[\*\?][\/\\]', caseSensitive: false);
 
   /// Check whether the file system is POSIX-compliant
   ///
   bool get isPosix => (separator == separatorPosix);
 
-  /// A short name of the current directory
+  /// RegExp to locate a combination of glob characters which means recursive directory scan
+  ///
+  static final _isRecursiveGlobPatternRE = RegExp(
+      r'\*\*|' + _hasWildcardsRE.pattern + r'.*[\/\\]',
+      caseSensitive: false);
+
+  /// Short name of the current directory
   ///
   static const String shortCurDirName = '.';
 
-  /// A short name of the parent directory
+  /// Short name of the parent directory
   ///
   static const String shortParentDirName = '..';
 
@@ -141,6 +147,12 @@ extension PathExt on p.Context {
     //
     return normalize(absPath);
   }
+
+  /// Check whether the path contains wildcards,
+  /// escape characters ignored as OS-dependant
+  ///
+  bool hasWildcards(String? path) =>
+      ((path != null) && _hasWildcardsRE.hasMatch(path));
 
   /// Check whether [path] represents a hidden file or directory:
   /// i.e. [path] contains a sub-dir or a filename starting with

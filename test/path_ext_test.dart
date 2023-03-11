@@ -169,20 +169,61 @@ void main() {
         expect(fs.path.equals(full, orig), true);
       });
     });
-    group('PathExt - glob - $styleName -', () {
-      // setUp(() => setUpHandler(fs));
-      // test('is recursive - abc/def.txt', () {
-      //   expect(fs.path.isRecursivePattern('abc${sep}def.txt'), false);
-      // });
-      // test('is recursive - **.txt', () {
-      //   expect(fs.path.isRecursivePattern('**.txt'), true);
-      // });
-      // test('is recursive - abc/*.txt', () {
-      //   expect(fs.path.isRecursivePattern('abc$sep*.txt'), false);
-      // });
-      // test('is recursive - ab?c/*.txt', () {
-      //   expect(fs.path.isRecursivePattern('ab?c$sep*.txt'), true);
-      // });
+    group('PathExt - isRecursive - $styleName -', () {
+      setUp(() => setUpHandler(fs));
+      test('is recursive - abc/def.txt', () {
+        expect(fs.path.isRecursive('abc${sep}def.txt'), false);
+      });
+      test('is recursive - **.txt', () {
+        expect(fs.path.isRecursive('**.txt'), true);
+      });
+      test('is recursive - abc/*.txt', () {
+        expect(fs.path.isRecursive('abc$sep*.txt'), false);
+      });
+      test('is recursive - ab?c/*.txt', () {
+        expect(fs.path.isRecursive('ab?c$sep*.txt'), true);
+      });
+    });
+    group('PathExt - hasWildcards - $styleName -', () {
+      test('empty', () {
+        expect(fs.path.hasWildcards(''), false);
+      });
+      test('no dir, no wildcard', () {
+        expect(fs.path.hasWildcards('abc.txt'), false);
+      });
+      test('has dir, no wildcard', () {
+        expect(
+            fs.path.hasWildcards(
+                fs.path.join(fs.currentDirectory.path, 'abc.txt')),
+            false);
+      });
+      test('no dir, has *', () {
+        expect(fs.path.hasWildcards('abc*.txt'), true);
+      });
+      test('has dir, has *', () {
+        expect(
+            fs.path.hasWildcards(
+                fs.path.join(fs.currentDirectory.path, 'abc*.txt')),
+            true);
+      });
+      test('has ?', () {
+        expect(
+            fs.path.hasWildcards(
+                fs.path.join(fs.currentDirectory.path, 'ab?c.txt')),
+            true);
+      });
+      test('has [', () {
+        expect(
+            fs.path.hasWildcards(
+                fs.path.join(fs.currentDirectory.path, 'a[bc]d.txt')),
+            true);
+      });
+      test('has {', () {
+        expect(
+            fs.path.hasWildcards(
+                fs.path.join(fs.currentDirectory.path, 'abc.{txt,csv}')),
+            true);
+      });
     });
     group('PathExt - is hidden - $styleName -', () {
       setUp(() => setUpHandler(fs));
@@ -230,6 +271,25 @@ void main() {
             'a${(fs.path.isPosix ? r'\' : '/')}b/c.def');
       });
     });
-    group('PathExt - toGlob - $styleName -', () {});
+    group('PathExt - toGlob - $styleName -', () {
+      test('empty', () {
+        expect(fs.path.toGlob('').pattern, '*');
+      });
+      test('blank', () {
+        expect(fs.path.toGlob(' ').pattern, ' ');
+      });
+      test('no wildcard', () {
+        expect(fs.path.toGlob('abc.txt').pattern, 'abc.txt');
+      });
+      test('has wildcard', () {
+        expect(fs.path.toGlob('abc*.txt').pattern, 'abc*.txt');
+      });
+      test('recursive', () {
+        expect(fs.path.toGlob('abc**.txt').recursive, true);
+      });
+      test('recursive from dir', () {
+        expect(fs.path.toGlob('ab?c/def.txt').recursive, true);
+      });
+    });
   });
 }
