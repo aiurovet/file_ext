@@ -1,6 +1,6 @@
 name: file_ext
 description: Helper methods for filesystem-, path- and stdin-related manipulations.
-version: 0.6.1
+version: 0.6.2
 homepage: https://github.com/aiurovet/file_ext/
 
 environment:

@@ -1,3 +1,7 @@
+## 0.6.2
+
+- Website changed
+
 ## 0.6.1
 
 - Fixed example, simplified readme
