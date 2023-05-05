@@ -59,8 +59,7 @@ extension FileSystemExt on FileSystem {
             if ((await onException(this, null, null, e, stackTrace)).isStop) {
               rethrow;
             }
-          }
-          else if (onExceptionSync != null) {
+          } else if (onExceptionSync != null) {
             if (onExceptionSync(this, null, null, e, stackTrace).isStop) {
               rethrow;
             }
@@ -83,8 +82,7 @@ extension FileSystemExt on FileSystem {
               if ((await onEntity(this, entity, stat)).isStop) {
                 break;
               }
-            }
-            else if (onEntitySync != null) {
+            } else if (onEntitySync != null) {
               if (onEntitySync(this, entity, stat).isStop) {
                 break;
               }
@@ -98,8 +96,7 @@ extension FileSystemExt on FileSystem {
                   .isStop) {
                 rethrow;
               }
-            }
-            else if (onExceptionSync != null) {
+            } else if (onExceptionSync != null) {
               if (onExceptionSync(this, entity, stat, e, stackTrace).isStop) {
                 rethrow;
               }
