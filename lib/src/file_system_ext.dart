@@ -55,13 +55,13 @@ extension FileSystemExt on FileSystem {
           entities = theFilter.listFileSystem(this,
               root: curRoot, followLinks: isFollowLinks);
         } on Exception catch (e, stackTrace) {
-          if (onExceptionSync != null) {
-            if (onExceptionSync(this, null, null, e, stackTrace).isStop) {
+          if (onException != null) {
+            if ((await onException(this, null, null, e, stackTrace)).isStop) {
               rethrow;
             }
           }
-          if (onException != null) {
-            if ((await onException(this, null, null, e, stackTrace)).isStop) {
+          else if (onExceptionSync != null) {
+            if (onExceptionSync(this, null, null, e, stackTrace).isStop) {
               rethrow;
             }
           }
@@ -79,13 +79,13 @@ extension FileSystemExt on FileSystem {
             if (!isAllTypes && !theTypes.contains(stat.type)) {
               continue;
             }
-            if (onEntitySync != null) {
-              if (onEntitySync(this, entity, stat).isStop) {
+            if (onEntity != null) {
+              if ((await onEntity(this, entity, stat)).isStop) {
                 break;
               }
             }
-            if (onEntity != null) {
-              if ((await onEntity(this, entity, stat)).isStop) {
+            else if (onEntitySync != null) {
+              if (onEntitySync(this, entity, stat).isStop) {
                 break;
               }
             }
@@ -93,14 +93,14 @@ extension FileSystemExt on FileSystem {
               result.add(entity.path);
             }
           } on Exception catch (e, stackTrace) {
-            if (onExceptionSync != null) {
-              if (onExceptionSync(this, entity, stat, e, stackTrace).isStop) {
-                rethrow;
-              }
-            }
             if (onException != null) {
               if ((await onException(this, entity, stat, e, stackTrace))
                   .isStop) {
+                rethrow;
+              }
+            }
+            else if (onExceptionSync != null) {
+              if (onExceptionSync(this, entity, stat, e, stackTrace).isStop) {
                 rethrow;
               }
             }

@@ -1,3 +1,7 @@
+## 0.7.1
+
+- Only one handler (either async or sync) shouldn't be null
+
 ## 0.7.0
 
 - Breaking: ditched FutureOr
