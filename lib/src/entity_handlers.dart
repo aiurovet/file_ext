@@ -10,7 +10,7 @@ import 'package:loop_visitor/loop_visitor.dart';
 /// \
 /// Returns true to continue the loop or false to rethrow
 ///
-typedef FileSystemEntityExceptionHandler = FutureOr<VisitResult> Function(
+typedef FileSystemEntityExceptionHandler = Future<VisitResult> Function(
     FileSystem fileSystem,
     FileSystemEntity? entity,
     FileStat? stat,
@@ -33,7 +33,7 @@ typedef FileSystemEntityExceptionHandlerSync = VisitResult Function(
 /// \
 /// Returns true to continue the loop or false to stop
 ///
-typedef FileSystemEntityHandler = FutureOr<VisitResult> Function(
+typedef FileSystemEntityHandler = Future<VisitResult> Function(
     FileSystem fileSystem, FileSystemEntity? entity, FileStat? stat);
 
 /// A type for sync callback function used by `FileSystemExt.listSync(...)`

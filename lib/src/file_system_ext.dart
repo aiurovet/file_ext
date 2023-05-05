@@ -31,7 +31,9 @@ extension FileSystemExt on FileSystem {
       List<FileSystemEntityType>? types,
       int flags = followLinks,
       FileSystemEntityHandler? onEntity,
-      FileSystemEntityExceptionHandler? onException}) async {
+      FileSystemEntityHandlerSync? onEntitySync,
+      FileSystemEntityExceptionHandler? onException,
+      FileSystemEntityExceptionHandlerSync? onExceptionSync}) async {
     final orgRoot = currentDirectory.path;
     final theRoots = _getRoots(root, roots);
     final theFilters = _getFilters(filter, filters);
@@ -43,10 +45,6 @@ extension FileSystemExt on FileSystem {
     var isFollowLinks = ((flags & followLinks) != 0);
     var isHiddenAllowed = ((flags & allowHidden) != 0);
 
-    final isOnEntitySync = (onEntity is FileSystemEntityHandlerSync);
-    final isOnExceptionSync =
-        (onException is FileSystemEntityExceptionHandlerSync);
-
     Stream<FileSystemEntity> entities;
     FileStat? stat;
 
@@ -57,13 +55,13 @@ extension FileSystemExt on FileSystem {
           entities = theFilter.listFileSystem(this,
               root: curRoot, followLinks: isFollowLinks);
         } on Exception catch (e, stackTrace) {
+          if (onExceptionSync != null) {
+            if (onExceptionSync(this, null, null, e, stackTrace).isStop) {
+              rethrow;
+            }
+          }
           if (onException != null) {
-            if (isOnExceptionSync) {
-              if (onException(this, null, null, e, stackTrace).isStop) {
-                rethrow;
-              }
-            } else if ((await onException(this, null, null, e, stackTrace))
-                .isStop) {
+            if ((await onException(this, null, null, e, stackTrace)).isStop) {
               rethrow;
             }
           }
@@ -81,12 +79,13 @@ extension FileSystemExt on FileSystem {
             if (!isAllTypes && !theTypes.contains(stat.type)) {
               continue;
             }
+            if (onEntitySync != null) {
+              if (onEntitySync(this, entity, stat).isStop) {
+                break;
+              }
+            }
             if (onEntity != null) {
-              if (isOnEntitySync) {
-                if (onEntity(this, entity, stat).isStop) {
-                  break;
-                }
-              } else if ((await onEntity(this, entity, stat)).isStop) {
+              if ((await onEntity(this, entity, stat)).isStop) {
                 break;
               }
             }
@@ -94,12 +93,13 @@ extension FileSystemExt on FileSystem {
               result.add(entity.path);
             }
           } on Exception catch (e, stackTrace) {
+            if (onExceptionSync != null) {
+              if (onExceptionSync(this, entity, stat, e, stackTrace).isStop) {
+                rethrow;
+              }
+            }
             if (onException != null) {
-              if (isOnExceptionSync) {
-                if (onException(this, entity, stat, e, stackTrace).isStop) {
-                  rethrow;
-                }
-              } else if ((await onException(this, entity, stat, e, stackTrace))
+              if ((await onException(this, entity, stat, e, stackTrace))
                   .isStop) {
                 rethrow;
               }
