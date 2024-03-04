@@ -1,3 +1,11 @@
+## 0.7.3
+
+- README fixed
+
+## 0.7.2
+
+- Upgraded packages
+
 ## 0.7.1
 
 - Only one handler (either async or sync) shouldn't be null
