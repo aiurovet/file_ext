@@ -1,3 +1,7 @@
+## 0.7.4
+
+- Upgraded loop_visitor and parse_args packages
+
 ## 0.7.3
 
 - README fixed
